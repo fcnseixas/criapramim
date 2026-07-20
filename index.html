@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CriaPraMim — um mês de posts, criados pra você</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#171512; --paper:#FBF9F4; --card:#ffffff; --accent:#E8654A; --accent2:#F2994A; --accent-soft:#FBE7E0;
+    --muted:#7c7770; --line:#ece8e0; --radius:18px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5;overflow-x:hidden}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+  a{color:inherit;text-decoration:none}
+  .serif{font-family:'Fraunces',serif}
+  .accent{color:var(--accent)}
+  .gradtext{background:linear-gradient(100deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  /* JS-gated hidden state (visible if module fails) */
+  .motion .reveal,.motion .h-el{opacity:0}
+  /* nav */
+  nav{position:sticky;top:0;z-index:50;background:rgba(251,249,244,.8);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:66px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.03em}
+  .logo svg{width:30px;height:30px}
+  .navlinks{display:flex;align-items:center;gap:28px;font-size:14px;font-weight:500;color:var(--muted)}
+  .navlinks a{position:relative}
+  .navlinks a::after{content:"";position:absolute;left:0;bottom:-4px;height:2px;width:0;background:var(--accent);transition:width .22s ease}
+  .navlinks a:hover{color:var(--ink)}.navlinks a:hover::after{width:100%}
+  .navbtns{display:flex;align-items:center;gap:10px}
+  .btn{display:inline-block;text-align:center;font-family:inherit;font-size:14px;font-weight:600;border-radius:11px;padding:10px 18px;cursor:pointer;border:1px solid transparent;transition:.14s;white-space:nowrap}
+  .btn-ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+  .btn-ghost:hover{border-color:#d8d3c9}
+  .btn-dark{background:var(--ink);color:#fff}
+  .btn-accent{background:var(--accent);color:#fff;box-shadow:0 8px 20px -8px var(--accent)}
+  .btn-lg{padding:14px 26px;font-size:15px}
+  @media(max-width:760px){.navlinks{display:none}}
+  /* hero */
+  .hero{position:relative;padding:88px 0 46px;text-align:center;overflow:hidden}
+  .aurora{position:absolute;inset:-30% -10% auto -10%;height:640px;z-index:0;filter:blur(70px);opacity:.55;pointer-events:none}
+  .blob{position:absolute;border-radius:50%}
+  .b1{width:420px;height:420px;background:radial-gradient(circle,#F2994A,transparent 68%);top:0;left:14%}
+  .b2{width:380px;height:380px;background:radial-gradient(circle,#E8654A,transparent 68%);top:80px;right:16%}
+  .b3{width:340px;height:340px;background:radial-gradient(circle,#EFC69B,transparent 70%);top:180px;left:44%}
+  .hero .wrap{position:relative;z-index:1}
+  .pill{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);color:var(--accent);font-size:13px;font-weight:600;padding:7px 15px;border-radius:999px;margin-bottom:26px;box-shadow:0 4px 14px -8px rgba(0,0,0,.15)}
+  h1{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(42px,6.6vw,72px);line-height:1.02;letter-spacing:-.022em;margin-bottom:22px}
+  .sub{font-size:clamp(16px,2.2vw,20px);color:var(--muted);max-width:620px;margin:0 auto 32px;line-height:1.55}
+  .hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .microtrust{margin-top:20px;font-size:13px;color:var(--muted)}
+  /* showcase marquee band (full-width) */
+  .showcase{padding:66px 0 78px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:linear-gradient(180deg,#ffffff,#FBF9F4)}
+  .marquee{position:relative;width:100%;-webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent)}
+  .track{display:flex;gap:22px;width:max-content;animation:scrollx 55s linear infinite;padding:6px 11px}
+  .marquee:hover .track{animation-play-state:paused}
+  @keyframes scrollx{to{transform:translateX(-50%)}}
+  .post{width:288px;flex-shrink:0;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 20px 46px -26px rgba(0,0,0,.26)}
+  .post .img{aspect-ratio:1/1;position:relative;background:linear-gradient(150deg,#EDE7DA,#e2d9c7)}
+  .post .img img{width:100%;height:100%;object-fit:cover;display:block}
+  .post .img .sp{position:absolute;top:12px;right:12px;background:rgba(255,255,255,.92);color:var(--accent);width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;backdrop-filter:blur(4px);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+  .post .cap{padding:15px 17px 18px}
+  .post .acct{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .post .acct .av{width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .post .acct .h{font-size:12.5px;font-weight:600;color:var(--muted)}
+  .post .ttl{font-family:'Fraunces',serif;font-weight:600;font-size:18px;line-height:1.22;margin-bottom:5px}
+  .post .txt{font-size:13px;color:var(--muted);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  @media(max-width:640px){.post{width:230px}}
+  /* sections */
+  section{padding:76px 0;position:relative}
+  .eyebrow{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);text-align:center;margin-bottom:12px}
+  .h2{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(28px,4vw,44px);text-align:center;letter-spacing:-.01em;line-height:1.08;margin-bottom:16px}
+  .lead{text-align:center;color:var(--muted);max-width:560px;margin:0 auto 52px;font-size:17px}
+  /* bento steps */
+  .bento{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:30px;position:relative;overflow:hidden;transition:box-shadow .25s,transform .25s}
+  .step::before{content:"";position:absolute;inset:0;background:radial-gradient(400px circle at var(--mx,50%) var(--my,0%),rgba(232,101,74,.09),transparent 40%);opacity:0;transition:opacity .3s}
+  .step:hover::before{opacity:1}
+  .step .n{width:40px;height:40px;border-radius:12px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:18px}
+  .step h3{font-size:19px;font-weight:700;margin-bottom:8px}
+  .step p{color:var(--muted);font-size:14.5px}
+  @media(max-width:760px){.bento{grid-template-columns:1fr}}
+  /* diferencial */
+  .diff{background:var(--ink);color:#F7F4EF;border-radius:28px;padding:60px 48px;position:relative;overflow:hidden}
+  .diff::after{content:"";position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(232,101,74,.35),transparent 65%);top:-160px;right:-120px;filter:blur(30px)}
+  .diff .inner{position:relative;z-index:1}
+  .diff .h2{color:#fff}.diff .lead{color:#b9b3a8}
+  .diff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:34px;margin-top:20px}
+  .diff-item h3{font-size:18px;margin-bottom:8px;display:flex;align-items:center;gap:9px}
+  .diff-item .dot{color:var(--accent)}
+  .diff-item p{color:#b9b3a8;font-size:14.5px}
+  @media(max-width:760px){.diff{padding:40px 26px}.diff-grid{grid-template-columns:1fr;gap:26px}}
+  /* pricing */
+  .prices{display:grid;grid-template-columns:1fr 1fr;gap:22px;max-width:800px;margin:0 auto}
+  .price{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:34px;transition:transform .25s,box-shadow .25s}
+  .price:hover{box-shadow:0 20px 46px -26px rgba(0,0,0,.25)}
+  .price.hi{border:2px solid var(--ink);position:relative}
+  .tagpop{position:absolute;top:-13px;left:34px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px}
+  .price .plan{font-weight:700;font-size:16px;margin-bottom:6px}
+  .price .val{font-family:'Fraunces',serif;font-size:44px;font-weight:600;letter-spacing:-.02em}
+  .price .val small{font-family:'Inter';font-size:15px;font-weight:500;color:var(--muted)}
+  .price .desc{color:var(--muted);font-size:14px;margin:4px 0 20px}
+  .price ul{list-style:none;margin-bottom:24px}
+  .price li{display:flex;gap:10px;font-size:14.5px;padding:7px 0;align-items:flex-start}
+  .price li::before{content:"✓";color:var(--accent);font-weight:800}
+  .price .btn{width:100%;text-align:center}
+  .compare{text-align:center;color:var(--muted);font-size:14px;margin-top:26px}
+  .strike{text-decoration:line-through;opacity:.6}
+  @media(max-width:640px){.prices{grid-template-columns:1fr}}
+  /* testimonials */
+  .quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .q{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:26px;transition:transform .25s,box-shadow .25s}
+  .q p{font-size:15px;margin-bottom:16px;line-height:1.55}
+  .q .who{display:flex;align-items:center;gap:11px}
+  .q .av{width:38px;height:38px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700}
+  .q .who b{font-size:14px}.q .who span{font-size:12px;color:var(--muted);display:block}
+  @media(max-width:760px){.quotes{grid-template-columns:1fr}}
+  /* cta band */
+  .band{text-align:center;background:linear-gradient(140deg,#E8654A,#F2994A);color:#fff;border-radius:28px;padding:62px 30px;position:relative;overflow:hidden}
+  .band .h2{color:#fff}.band p{opacity:.94;margin-bottom:26px;font-size:17px}
+  .band .btn-dark{background:#171512}
+  /* footer */
+  footer{border-top:1px solid var(--line);padding:44px 0}
+  footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+  footer .flinks{display:flex;gap:22px;font-size:14px;color:var(--muted)}
+  footer .flinks a:hover{color:var(--ink)}
+  .copy{font-size:13px;color:var(--muted)}
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(23,21,18,.45);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+  .overlay.on{display:flex}
+  .modal{background:var(--card);border-radius:22px;width:100%;max-width:410px;padding:34px;position:relative;box-shadow:0 30px 70px -20px rgba(0,0,0,.4)}
+  .modal .x{position:absolute;top:18px;right:20px;font-size:22px;color:var(--muted);cursor:pointer;line-height:1}
+  .modal .logo{justify-content:center;margin-bottom:6px}
+  .tabs{display:flex;gap:6px;background:#f2efe8;border-radius:12px;padding:4px;margin:20px 0 22px}
+  .tab{flex:1;text-align:center;padding:9px;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;transition:.15s}
+  .tab.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .field{margin-bottom:14px}
+  .field label{font-size:13px;font-weight:500;display:block;margin-bottom:6px}
+  .field input{width:100%;border:1px solid var(--line);border-radius:11px;padding:12px;font-family:inherit;font-size:14px;background:#fff}
+  .field input:focus{outline:none;border-color:var(--ink)}
+  .modal .btn-dark{width:100%;text-align:center;margin-top:6px}
+  .or{text-align:center;color:var(--muted);font-size:12px;margin:16px 0;position:relative}
+  .or::before,.or::after{content:"";position:absolute;top:50%;width:38%;height:1px;background:var(--line)}
+  .or::before{left:0}.or::after{right:0}
+  .btn-google{width:100%;text-align:center;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;gap:9px}
+  .btn-google:hover{border-color:#d8d3c9}
+  .fine{font-size:11.5px;color:var(--muted);text-align:center;margin-top:16px;line-height:1.5}
+  .note{background:var(--accent-soft);color:#b23c25;font-size:12.5px;padding:9px 12px;border-radius:10px;margin-top:14px;display:none}
+  @media(prefers-reduced-motion:reduce){.track{animation:none}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a href="#" class="logo">
+      <svg viewBox="0 0 48 48" fill="none"><rect x="4" y="4" width="40" height="40" rx="13" fill="#171512"/><g transform="translate(9.5,13) scale(0.86)"><path d="M12 0C12 6.6 6.6 12 0 12 6.6 12 12 17.4 12 24 12 17.4 17.4 12 24 12 17.4 12 12 6.6 12 0Z" fill="#F7F4EF"/></g><g transform="translate(28.5,9.5) scale(0.4)"><path d="M12 0C12 6.6 6.6 12 0 12 6.6 12 12 17.4 12 24 12 17.4 17.4 12 24 12 17.4 12 12 6.6 12 0Z" fill="#E8654A"/></g></svg>
+      criapramim
+    </a>
+    <div class="navlinks">
+      <a href="#como">Como funciona</a>
+      <a href="#precos">Preços</a>
+      <a href="#depoimentos">Depoimentos</a>
+    </div>
+    <div class="navbtns">
+      <button class="btn btn-ghost" onclick="openModal('entrar')">Entrar</button>
+      <a class="btn btn-accent" href="app.html">Começar grátis</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="aurora"><div class="blob b1" id="b1"></div><div class="blob b2" id="b2"></div><div class="blob b3" id="b3"></div></div>
+  <div class="wrap">
+    <span class="pill h-el">✦ Conteúdo com IA, do seu jeito</span>
+    <h1 class="h-el">Um mês de posts.<br><span class="gradtext serif">Criados pra você.</span></h1>
+    <p class="sub h-el">A CriaPraMim lê o seu perfil, entende suas cores e seu tom, e gera posts prontos pra Instagram. Você ajusta, baixa em alta e publica onde quiser — sem conectar conta, sem coleira.</p>
+    <div class="hero-cta h-el">
+      <a class="btn btn-accent btn-lg" href="app.html">Começar grátis</a>
+      <a href="#como" class="btn btn-ghost btn-lg">Ver como funciona</a>
+    </div>
+    <div class="microtrust h-el">7 dias grátis · sem cartão · feito para negócios, criadores e autônomos</div>
+  </div>
+
+</header>
+
+<section class="showcase">
+  <div class="wrap" style="text-align:center">
+    <div class="eyebrow reveal">Feito pra sua marca</div>
+    <div class="h2 reveal" style="margin-bottom:10px">Exemplos criados pela CriaPraMim</div>
+    <p class="lead reveal" style="margin-bottom:0">Cada card é um post pronto — imagem, título e legenda, com a sua cara.</p>
+  </div>
+  <div class="marquee" style="margin-top:46px">
+    <div class="track" id="track"></div>
+  </div>
+</section>
+
+<section id="como">
+  <div class="wrap">
+    <div class="eyebrow reveal">Como funciona</div>
+    <div class="h2 reveal">Três passos. Zero complicação.</div>
+    <p class="lead reveal">Do perfil ao post pronto em minutos. Sem template do Canva, sem prompt no ChatGPT.</p>
+    <div class="bento">
+      <div class="step reveal"><div class="n">1</div><h3>Leia seu perfil</h3><p>Suba um print da sua grade do Instagram. A IA extrai sua paleta de cores, o tom de voz e os temas que combinam com você.</p></div>
+      <div class="step reveal"><div class="n">2</div><h3>Gere seu conteúdo</h3><p>Escolha os assuntos e receba vários posts prontos — design e legenda — já com a cara da sua marca.</p></div>
+      <div class="step reveal"><div class="n">3</div><h3>Baixe e publique</h3><p>Ajuste cores, textos e imagens. Baixe em alta resolução e publique no seu tempo, onde você quiser.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="diff reveal">
+      <div class="inner">
+        <div class="eyebrow" style="color:var(--accent)">O diferencial</div>
+        <div class="h2">Sem coleira.</div>
+        <p class="lead">Outras ferramentas prendem você na plataforma. A CriaPraMim entrega os arquivos e te deixa livre.</p>
+        <div class="diff-grid">
+          <div class="diff-item"><h3><span class="dot">✦</span> Design que não parece IA</h3><p>Feito por quem entende de design. Posts com respiro, hierarquia e bom gosto — não template genérico.</p></div>
+          <div class="diff-item"><h3><span class="dot">✦</span> Os arquivos são seus</h3><p>Você baixa em alta e leva pra onde quiser. Cancelou? Seu conteúdo continua com você.</p></div>
+          <div class="diff-item"><h3><span class="dot">✦</span> Publique quando quiser</h3><p>O próprio Instagram já agenda posts de graça. A gente cria; você posta no seu ritmo.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="precos" style="padding-top:20px">
+  <div class="wrap">
+    <div class="eyebrow reveal">Preços</div>
+    <div class="h2 reveal">Metade do preço. O dobro do gosto.</div>
+    <p class="lead reveal">Comece de graça. Assine quando fizer sentido.</p>
+    <div class="prices">
+      <div class="price reveal">
+        <div class="plan">Teste grátis</div>
+        <div class="val">R$0</div>
+        <div class="desc">7 dias pra explorar com uma marca.</div>
+        <ul><li>Leitura de perfil por IA</li><li>Até 10 posts gerados</li><li>Todos os layouts</li><li>Download em alta</li></ul>
+        <a class="btn btn-ghost" href="app.html">Criar conta grátis</a>
+      </div>
+      <div class="price hi reveal">
+        <div class="tagpop">Mais popular</div>
+        <div class="plan">Pro</div>
+        <div class="val">R$49<small>/mês</small></div>
+        <div class="desc">Pra quem posta toda semana.</div>
+        <ul><li>Posts ilimitados (design padrão)</li><li>Leitura de perfil e tom de voz</li><li>Todos os layouts + edição completa</li><li>Sem marca d'água · export em alta</li><li>Créditos de imagem por IA (add-on)</li></ul>
+        <a class="btn btn-dark" href="app.html">Assinar o Pro</a>
+      </div>
+    </div>
+    <p class="compare reveal">Ferramentas parecidas cobram <span class="strike">R$99/mês</span> pelo plano completo. Aqui é <b>R$49</b> — e você não fica preso a nada.</p>
+  </div>
+</section>
+
+<section id="depoimentos">
+  <div class="wrap">
+    <div class="eyebrow reveal">Depoimentos</div>
+    <div class="h2 reveal">Quem usa, economiza tempo.</div>
+    <p class="lead reveal">Exemplos ilustrativos — o produto está em construção com clientes reais.</p>
+    <div class="quotes">
+      <div class="q reveal"><p>"Eu levava a tarde inteira montando post no Canva. Agora saio com a semana toda pronta em 10 minutos."</p><div class="who"><div class="av">C</div><div><b>Camila R.</b><span>Nutricionista</span></div></div></div>
+      <div class="q reveal"><p>"O que mais gostei é que os posts têm a minha cara, minhas cores. Não parece feito por robô."</p><div class="who"><div class="av">D</div><div><b>Diego M.</b><span>Personal trainer</span></div></div></div>
+      <div class="q reveal"><p>"Baixo, ajusto o que quiser e posto quando dá. Simples do jeito que eu precisava."</p><div class="who"><div class="av">A</div><div><b>Aline S.</b><span>Ateliê de decoração</span></div></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="band reveal">
+      <div class="h2">Bora criar o seu primeiro lote?</div>
+      <p>7 dias grátis. Sem cartão. Cancele quando quiser.</p>
+      <a class="btn btn-dark btn-lg" href="app.html">Começar agora</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <a href="#" class="logo" style="font-size:17px">
+      <svg viewBox="0 0 48 48" fill="none" style="width:26px;height:26px"><rect x="4" y="4" width="40" height="40" rx="13" fill="#171512"/><g transform="translate(9.5,13) scale(0.86)"><path d="M12 0C12 6.6 6.6 12 0 12 6.6 12 12 17.4 12 24 12 17.4 17.4 12 24 12 17.4 12 12 6.6 12 0Z" fill="#F7F4EF"/></g><g transform="translate(28.5,9.5) scale(0.4)"><path d="M12 0C12 6.6 6.6 12 0 12 6.6 12 12 17.4 12 24 12 17.4 17.4 12 24 12 17.4 12 12 6.6 12 0Z" fill="#E8654A"/></g></svg>
+      criapramim
+    </a>
+    <div class="flinks"><a href="#como">Como funciona</a><a href="#precos">Preços</a><a href="#">Termos</a><a href="#">Privacidade</a></div>
+    <div class="copy">© 2026 CriaPraMim</div>
+  </div>
+</footer>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <span class="x" onclick="closeModal()">×</span>
+    <div class="logo" style="justify-content:center">
+      <svg viewBox="0 0 48 48" fill="none" style="width:34px;height:34px"><rect x="4" y="4" width="40" height="40" rx="13" fill="#171512"/><g transform="translate(9.5,13) scale(0.86)"><path d="M12 0C12 6.6 6.6 12 0 12 6.6 12 12 17.4 12 24 12 17.4 17.4 12 24 12 17.4 12 12 6.6 12 0Z" fill="#F7F4EF"/></g><g transform="translate(28.5,9.5) scale(0.4)"><path d="M12 0C12 6.6 6.6 12 0 12 6.6 12 12 17.4 12 24 12 17.4 17.4 12 24 12 17.4 12 12 6.6 12 0Z" fill="#E8654A"/></g></svg>
+    </div>
+    <div class="tabs">
+      <div class="tab" id="tabEntrar" onclick="switchTab('entrar')">Entrar</div>
+      <div class="tab" id="tabCriar" onclick="switchTab('criar')">Criar conta</div>
+    </div>
+    <div class="field" id="fName" style="display:none"><label>Seu nome</label><input type="text" placeholder="Como podemos te chamar?"></div>
+    <div class="field"><label>E-mail</label><input type="email" placeholder="voce@email.com"></div>
+    <div class="field"><label>Senha</label><input type="password" placeholder="••••••••"></div>
+    <button class="btn btn-dark" id="submitBtn" onclick="fakeAuth()">Entrar</button>
+    <div class="or">ou</div>
+    <button class="btn btn-google" onclick="fakeAuth()">
+      <svg width="17" height="17" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2-1.9 3.3-4.7 3.3-7.9z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.5-2.7c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.6H2v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.7 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2a11 11 0 0 0 0 9.8l3.7-2.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.2 1.7l3.1-3.1A11 11 0 0 0 2 7.1l3.7 2.8C6.6 7.3 9.1 5.4 12 5.4z"/></svg>
+      Continuar com Google
+    </button>
+    <div class="note" id="authNote">Protótipo — o cadastro/login ainda não está conectado a um backend. Na versão real, aqui entram autenticação e cobrança.</div>
+    <div class="fine">Ao continuar, você concorda com os Termos de Uso e a Política de Privacidade.</div>
+  </div>
+</div>
+
+<!-- plain-JS interactions (always available) -->
+<script>
+  const ov=document.getElementById('overlay');
+  function openModal(tab){ov.classList.add('on');switchTab(tab);document.body.style.overflow='hidden'}
+  function closeModal(){ov.classList.remove('on');document.body.style.overflow='';document.getElementById('authNote').style.display='none'}
+  function switchTab(t){const c=t==='criar';document.getElementById('tabCriar').classList.toggle('on',c);document.getElementById('tabEntrar').classList.toggle('on',!c);document.getElementById('fName').style.display=c?'block':'none';document.getElementById('submitBtn').textContent=c?'Criar minha conta':'Entrar'}
+  ov.onclick=e=>{if(e.target===ov)closeModal()};
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+  function fakeAuth(){document.getElementById('authNote').style.display='block'}
+  // spotlight follow for step cards
+  document.querySelectorAll('.step').forEach(s=>s.addEventListener('pointermove',e=>{const r=s.getBoundingClientRect();s.style.setProperty('--mx',(e.clientX-r.left)+'px');s.style.setProperty('--my',(e.clientY-r.top)+'px')}));
+
+  // showcase posts (real-post cards) — built here so it works without the Motion CDN
+  const SAMPLES=[
+    {h:'@nutri.ana',a:'A',t:'3 trocas simples pra comer melhor',x:'Pequenas mudanças que cabem na sua rotina de verdade.',s:'cpm-food'},
+    {h:'@diego.move',a:'D',t:'Treino de 20 min pra semana cheia',x:'Sem desculpa: dá pra fazer em casa, sem equipamento.',s:'cpm-fit'},
+    {h:'@atelie.aurora',a:'A',t:'Bastidores do ateliê hoje',x:'Uma espiadinha no processo por trás das peças.',s:'cpm-atelier'},
+    {h:'@cafe.matiz',a:'M',t:'O segredo do nosso espresso',x:'Grãos frescos, torra na medida, extração no ponto.',s:'cpm-coffee'},
+    {h:'@studio.pele',a:'S',t:'Sua pele agradece esse passo',x:'A ordem certa dos produtos faz toda a diferença.',s:'cpm-skin'},
+    {h:'@estudio.linha',a:'L',t:'Menos, porém melhor',x:'Design que respira — cada detalhe com intenção.',s:'cpm-design'},
+    {h:'@rota.leve',a:'R',t:'3 destinos pra desacelerar',x:'Pausa que o corpo pede, sem gastar uma fortuna.',s:'cpm-travel'},
+    {h:'@moda.essencial',a:'E',t:'Peças que combinam com tudo',x:'Guarda-roupa cápsula na prática, do seu jeito.',s:'cpm-fashion'}
+  ];
+  const track=document.getElementById('track');
+  if(track){
+    const card=p=>`<div class="post"><div class="img"><div class="sp">✦</div><img loading="lazy" alt="" src="https://picsum.photos/seed/${p.s}/560/560" onerror="this.style.display='none'"></div><div class="cap"><div class="acct"><div class="av">${p.a}</div><div class="h">${p.h}</div></div><div class="ttl">${p.t}</div><div class="txt">${p.x}</div></div></div>`;
+    const html=SAMPLES.map(card).join('');
+    track.innerHTML=html+html; // duplicated for a seamless loop
+  }
+</script>
+
+<!-- Motion (via CDN). If this fails to load, all content stays visible (no .motion class applied). -->
+<script type="module">
+  import { animate, inView, stagger, hover, press } from "https://cdn.jsdelivr.net/npm/motion@11.11.13/+esm";
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.documentElement.classList.add('motion');
+  const EASE=[.2,.7,.3,1];
+
+  if(reduce){
+    document.querySelectorAll('.h-el,.reveal').forEach(el=>el.style.opacity=1);
+  } else {
+    // hero: staggered fade-up on load
+    animate('.h-el',{opacity:[0,1],transform:['translateY(22px)','translateY(0px)']},{duration:.6,delay:stagger(.09),ease:EASE});
+
+    // gentle aurora drift (transform/opacity only)
+    animate('#b1',{transform:['translate(0,0)','translate(30px,20px)']},{duration:9,repeat:Infinity,repeatType:'mirror',ease:'easeInOut'});
+    animate('#b2',{transform:['translate(0,0)','translate(-26px,26px)']},{duration:11,repeat:Infinity,repeatType:'mirror',ease:'easeInOut'});
+    animate('#b3',{transform:['translate(0,0)','translate(18px,-22px)']},{duration:10,repeat:Infinity,repeatType:'mirror',ease:'easeInOut'});
+
+    // scroll reveals
+    document.querySelectorAll('.reveal').forEach(el=>{
+      inView(el,()=>{animate(el,{opacity:[0,1],transform:['translateY(26px)','translateY(0px)']},{duration:.6,ease:EASE});},{amount:.2});
+    });
+
+    // spring hover on cards
+    document.querySelectorAll('.step,.price,.q').forEach(el=>{
+      hover(el,()=>{animate(el,{transform:'translateY(-6px)'},{type:'spring',stiffness:320,damping:20});
+        return ()=>animate(el,{transform:'translateY(0px)'},{type:'spring',stiffness:320,damping:22});});
+    });
+    // press feedback on buttons
+    document.querySelectorAll('.btn').forEach(el=>{
+      press(el,()=>{animate(el,{scale:.96},{duration:.1});return ()=>animate(el,{scale:1},{type:'spring',stiffness:400,damping:15});});
+    });
+  }
+</script>
+</body>
+</html>
