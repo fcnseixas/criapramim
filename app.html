@@ -199,6 +199,14 @@
         <h2>Texto breve <span style="font-weight:400;text-transform:none;color:var(--muted)">(slide)</span></h2>
         <textarea id="edSub" rows="2"></textarea>
       </div>
+      <div class="section" id="edBodyWrap" style="display:none">
+        <h2>Texto <span style="font-weight:400;text-transform:none;color:var(--muted)">(até ~100 palavras)</span></h2>
+        <textarea id="edBody" rows="5"></textarea>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;font-weight:500;cursor:pointer">
+          <input type="checkbox" id="edNoPhoto" style="width:15px;height:15px;accent-color:var(--accent)">
+          Sem foto (fundo de cor)
+        </label>
+      </div>
       <div class="section">
         <h2>Tipografia</h2>
         <label>Fonte</label>
@@ -264,7 +272,7 @@
 const S=1080; // export resolution
 const state={ palette:['#141414','#f5f2ec','#c8a97e','#7a8b7f','#e4e0d8'], tones:new Set(['minimalista']), posts:[], sel:null, mode:'individual', caption:'', face:null };
 const TONES=['minimalista','sofisticado','divertido','acolhedor','técnico','inspirador'];
-const LAYOUTS=['manchete','dica','citação','foto','estatística'];
+const LAYOUTS=['manchete','dica','citação','foto','texto','estatística'];
 const FONTS=[{label:'Inter',css:'Inter',w:700},{label:'Fraunces',css:'Fraunces',w:600},{label:'Poppins',css:'Poppins',w:700},{label:'Playfair',css:'"Playfair Display"',w:700},{label:'Bebas',css:'"Bebas Neue"',w:400}];
 
 // ---------- copy generator (stand-in for LLM) ----------
@@ -359,13 +367,31 @@ function render(post,canvas){
     ctx.fillStyle=ac;ctx.font='800 220px Inter';ctx.fillText(num,S/2,S/2-60);
     ctx.fillStyle=tx;ctx.font='500 46px Inter';roundText(ctx,rest,S/2,S/2+140,S-200,56);
   }
+  else if(post.layout==='texto'){
+    const hasImg=post.img&&!post.noPhoto;
+    if(hasImg){
+      const r=Math.max(S/post.img.width,S/post.img.height);const w=post.img.width*r,h=post.img.height*r;
+      ctx.drawImage(post.img,(S-w)/2,(S-h)/2,w,h);
+      ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(0,0,S,S);
+    }
+    const titleCol=hasImg?'#fff':ac, bodyCol=hasImg?'rgba(255,255,255,.9)':tx;
+    ctx.textAlign='left';ctx.textBaseline='top';
+    const mx=90,maxW=S-180,sc=(post.fontScale||100)/100;let y=170;
+    ctx.fillStyle=titleCol;ctx.font=fontStr(post,60);
+    wrapLines(ctx,post.title,maxW).forEach(l=>{ctx.fillText(l,mx,y);y+=Math.round(60*sc*1.14)});
+    y+=30;
+    ctx.fillStyle=bodyCol;ctx.font='400 34px Inter';
+    wrapLines(ctx,post.body||'',maxW).forEach(l=>{ctx.fillText(l,mx,y);y+=46});
+    ctx.textBaseline='alphabetic';ctx.fillStyle=hasImg?'rgba(255,255,255,.82)':tx;if(!hasImg)ctx.globalAlpha=.6;ctx.font='500 28px Inter';
+    ctx.fillText(handle,mx,S-70);ctx.globalAlpha=1;ctx.textBaseline='middle';
+  }
   else{ // manchete
     ctx.fillStyle=ac;ctx.fillRect(90,300,80,10);
     ctx.fillStyle=tx;ctx.font='800 86px Inter';ctx.textAlign='left';
     roundText(ctx,post.title,90,S/2+20,S-180,96);
   }
-  // footer brand (skip on foto/citação which have own)
-  if(post.layout!=='foto'&&post.layout!=='citação'){
+  // footer brand (skip on foto/citação/texto which have own)
+  if(post.layout!=='foto'&&post.layout!=='citação'&&post.layout!=='texto'){
     ctx.textAlign='left';ctx.fillStyle=tx;ctx.globalAlpha=.55;ctx.font='500 28px Inter';
     ctx.fillText(name+'  ·  '+handle,90,S-90);ctx.globalAlpha=1;
   }
@@ -436,7 +462,7 @@ async function buildIndividual(){
   const st=document.getElementById('genStatus');st.textContent='✦ escrevendo textos com IA…';
   try{
     const arr=await fetchCopyAPI(src,qty);
-    posts.forEach((p,i)=>{const c=arr[i];if(c&&c.titulo){p.title=String(c.titulo).trim();const leg=String(c.legenda||'').trim();const tags=String(c.hashtags||'').trim();p.caption=[p.title,leg,tags].filter(Boolean).join('\n\n');}});
+    posts.forEach((p,i)=>{const c=arr[i];if(c&&c.titulo){p.title=String(c.titulo).trim();const leg=String(c.legenda||'').trim();const tags=String(c.hashtags||'').trim();p.body=leg;p.caption=[p.title,leg,tags].filter(Boolean).join('\n\n');}});
     renderGrid();
     if(state.sel!=null&&document.getElementById('editor').style.display!=='none')openEditor(state.sel);
     st.textContent='';
@@ -483,6 +509,10 @@ function openEditor(id){
   const subWrap=document.getElementById('edSubWrap');
   if(p.slideTotal){subWrap.style.display='block';const es=document.getElementById('edSub');es.value=p.subtitle||'';es.oninput=e=>{p.subtitle=e.target.value;renderGrid()};}
   else subWrap.style.display='none';
+  // texto (layout Texto)
+  const bodyWrap=document.getElementById('edBodyWrap');
+  if(p.layout==='texto'){bodyWrap.style.display='block';const eb=document.getElementById('edBody');if(p.body==null)p.body='';eb.value=p.body;eb.oninput=e=>{p.body=e.target.value;renderGrid()};const np=document.getElementById('edNoPhoto');np.checked=!!p.noPhoto;np.onchange=e=>{p.noPhoto=e.target.checked;renderGrid();openEditor(id)};}
+  else bodyWrap.style.display='none';
   // tipografia
   const ef=document.getElementById('edFonts');ef.innerHTML='';
   const curFont=p.font||'Inter';
@@ -549,7 +579,7 @@ edFile.onchange=e=>{const f=e.target.files[0];if(!f)return;const p=state.posts.f
 const TONE_STYLE={minimalista:'clean minimalist',sofisticado:'elegant sophisticated editorial',divertido:'vibrant playful colorful',acolhedor:'warm cozy natural light','técnico':'clean modern flat lay',inspirador:'bright uplifting airy'};
 function imgPrompt(p,custom,useFace){
   const subj=(custom&&custom.trim())||p.theme||p.title;
-  const style=`${TONE_STYLE[tone()]||'clean minimalist'} photography for social media, high quality, natural light, no text, no watermark`;
+  const style=`${TONE_STYLE[tone()]||'clean minimalist'} photography for social media, high quality, natural light. IMPORTANT: absolutely no text, no letters, no words, no captions, no writing, no typography, no logos, no signs or labels of any kind in the image`;
   if(useFace)return `Realistic photo featuring the SAME PERSON from the reference image — keep their face and identity faithfully. Context: ${subj}. ${style}`;
   return `${subj}, ${style}`;
 }
