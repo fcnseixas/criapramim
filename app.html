@@ -129,6 +129,10 @@
         <input type="file" id="file" accept="image/*" hidden>
         <div class="palette" id="palette" style="display:none"></div>
         <div class="hint" id="readOut" style="display:none"></div>
+        <label style="margin-top:14px">Sua foto <span style="font-weight:400;color:var(--muted)">(opcional — pra aparecer nas artes)</span></label>
+        <div class="drop" id="faceDrop" style="padding:12px">Suba uma foto sua de rosto, bem iluminada</div>
+        <input type="file" id="faceFile" accept="image/*" hidden>
+        <div class="mini" id="faceStatus"></div>
       </div>
 
       <div class="section">
@@ -215,6 +219,10 @@
       <div class="section">
         <h2>Imagem <span style="font-weight:400;text-transform:none;color:var(--muted)">(layout foto)</span></h2>
         <button class="ghost" id="genImg" style="width:100%">✦ Gerar imagem por IA</button>
+        <label id="useFaceWrap" style="display:none;align-items:center;gap:8px;margin-top:10px;font-size:13px;font-weight:500;cursor:pointer">
+          <input type="checkbox" id="useFace" style="width:15px;height:15px;accent-color:var(--accent)">
+          Usar minha foto (rosto) nesta imagem
+        </label>
         <input type="text" id="edPrompt" placeholder="descreva a imagem (opcional)" style="margin-top:8px">
         <div class="mini" id="imgStatus"></div>
         <div class="drop" id="edDrop" style="padding:12px;margin-top:10px">ou suba uma foto sua</div>
@@ -254,7 +262,7 @@
 
 <script>
 const S=1080; // export resolution
-const state={ palette:['#141414','#f5f2ec','#c8a97e','#7a8b7f','#e4e0d8'], tones:new Set(['minimalista']), posts:[], sel:null, mode:'individual', caption:'' };
+const state={ palette:['#141414','#f5f2ec','#c8a97e','#7a8b7f','#e4e0d8'], tones:new Set(['minimalista']), posts:[], sel:null, mode:'individual', caption:'', face:null };
 const TONES=['minimalista','sofisticado','divertido','acolhedor','técnico','inspirador'];
 const LAYOUTS=['manchete','dica','citação','foto','estatística'];
 const FONTS=[{label:'Inter',css:'Inter',w:700},{label:'Fraunces',css:'Fraunces',w:600},{label:'Poppins',css:'Poppins',w:700},{label:'Playfair',css:'"Playfair Display"',w:700},{label:'Bebas',css:'"Bebas Neue"',w:400}];
@@ -486,6 +494,9 @@ function openEditor(id){
   document.getElementById('edCap').textContent=(state.mode==='carousel'?state.caption:p.caption);
   const gi=document.getElementById('genImg');gi.disabled=false;gi.textContent=p.img?'✦ Gerar outra':'✦ Gerar imagem por IA';
   document.getElementById('imgStatus').textContent='';document.getElementById('edPrompt').value='';
+  const uf=document.getElementById('useFaceWrap');
+  if(state.face){uf.style.display='flex';const cb=document.getElementById('useFace');cb.checked=!!p.useFace;cb.onchange=e=>{p.useFace=e.target.checked};}
+  else uf.style.display='none';
 }
 function swatches(elId,cb,cur){
   const el=document.getElementById(elId);el.innerHTML='';
@@ -507,6 +518,10 @@ function showPalette(){
 const drop=document.getElementById('drop'),file=document.getElementById('file');
 drop.onclick=()=>file.click();
 file.onchange=e=>{const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{state.palette=extractPalette(img);showPalette();const ro=document.getElementById('readOut');ro.style.display='block';ro.innerHTML=`Leitura concluída · ${state.palette.length} cores dominantes extraídas · tom sugerido: <b>${tone()}</b>`;};img.src=URL.createObjectURL(f)};
+
+const faceDrop=document.getElementById('faceDrop'),faceFile=document.getElementById('faceFile');
+faceDrop.onclick=()=>faceFile.click();
+faceFile.onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{state.face=rd.result;document.getElementById('faceStatus').textContent='Foto carregada ✓ — marque “usar minha foto” nas imagens que quiser e gere de novo.';faceDrop.textContent='Trocar foto';};rd.readAsDataURL(f)};
 
 const tonesEl=document.getElementById('tones');
 TONES.forEach(t=>{const c=document.createElement('div');c.className='chip'+(state.tones.has(t)?' on':'');c.textContent=t;c.onclick=()=>{state.tones.clear();state.tones.add(t);[...tonesEl.children].forEach(ch=>ch.classList.toggle('on',ch.textContent===t))};tonesEl.appendChild(c)});
@@ -532,15 +547,23 @@ edFile.onchange=e=>{const f=e.target.files[0];if(!f)return;const p=state.posts.f
 
 // ---------- AI image generation (via our backend /api/generate-image -> OpenAI) ----------
 const TONE_STYLE={minimalista:'clean minimalist',sofisticado:'elegant sophisticated editorial',divertido:'vibrant playful colorful',acolhedor:'warm cozy natural light','técnico':'clean modern flat lay',inspirador:'bright uplifting airy'};
-function imgPrompt(p,custom){const subj=(custom&&custom.trim())||p.theme||p.title;return `${subj}, ${TONE_STYLE[tone()]||'clean minimalist'} photography for social media, high quality, natural light, no text, no watermark`;}
+function imgPrompt(p,custom,useFace){
+  const subj=(custom&&custom.trim())||p.theme||p.title;
+  const style=`${TONE_STYLE[tone()]||'clean minimalist'} photography for social media, high quality, natural light, no text, no watermark`;
+  if(useFace)return `Realistic photo featuring the SAME PERSON from the reference image — keep their face and identity faithfully. Context: ${subj}. ${style}`;
+  return `${subj}, ${style}`;
+}
 function generateImageFor(p,opts){
   opts=opts||{};const retries=opts.retries==null?2:opts.retries;
   p.loading=true;if(!p.imgStyle)p.imgStyle='band';
+  const useFace=!!(p.useFace&&state.face);
   const giveup=()=>{
     if(retries>0){setTimeout(()=>generateImageFor(p,Object.assign({},opts,{retries:retries-1})),1000);}
     else{p.loading=false;renderGrid();opts.cb&&opts.cb(false);}
   };
-  fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:imgPrompt(p,opts.custom)})})
+  const body={prompt:imgPrompt(p,opts.custom,useFace)};
+  if(useFace)body.face=state.face;
+  fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
     .then(r=>{if(!r.ok)throw new Error('http '+r.status);return r.json();})
     .then(d=>{if(!d.dataUrl)throw new Error('no image');const img=new Image();img.onload=()=>{p.img=img;p.loading=false;p.layout='foto';renderGrid();opts.cb&&opts.cb(true);};img.onerror=()=>giveup();img.src=d.dataUrl;})
     .catch(()=>giveup());
