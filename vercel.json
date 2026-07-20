@@ -1,0 +1,6 @@
+{
+  "functions": {
+    "api/generate-image.js": { "maxDuration": 60 },
+    "api/generate-text.js": { "maxDuration": 30 }
+  }
+}

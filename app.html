@@ -6,7 +6,7 @@
 <title>criapramim — protótipo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Poppins:wght@600;700;800&family=Playfair+Display:wght@600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#FBF9F4; --panel:#ffffff; --ink:#171512; --muted:#8a857c;
@@ -137,6 +137,14 @@
       </div>
 
       <div class="section">
+        <h2>Modo</h2>
+        <div class="chips" id="modePick">
+          <div class="chip on" data-mode="individual">Posts individuais</div>
+          <div class="chip" data-mode="carousel">Carrossel</div>
+        </div>
+      </div>
+
+      <div class="section" id="indivFields">
         <h2>Conteúdo</h2>
         <label>Temas e ideias (um por linha)</label>
         <textarea id="themes" rows="4" placeholder="Ex:&#10;dicas de organização&#10;bastidores do ateliê&#10;depoimento de cliente"></textarea>
@@ -145,11 +153,27 @@
           <input type="range" id="qty" min="3" max="12" value="6">
           <span class="qty" id="qtyVal">6</span>
         </div>
-        <label style="display:flex;align-items:center;gap:9px;margin-top:16px;font-weight:500;cursor:pointer">
+      </div>
+
+      <div class="section" id="carFields" style="display:none">
+        <h2>Carrossel</h2>
+        <label>Título</label>
+        <input type="text" id="carTitle" placeholder="Ex: Como cuidar da pele no inverno">
+        <label style="margin-top:10px">Contexto / história</label>
+        <textarea id="carContext" rows="4" placeholder="Resuma o que o carrossel deve contar: os pontos principais, na ordem que fizer sentido."></textarea>
+        <div class="range" style="margin-top:14px">
+          <label style="margin:0">Nº de imagens</label>
+          <input type="range" id="carN" min="2" max="10" value="5">
+          <span class="qty" id="carNVal">5</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <label style="display:flex;align-items:center;gap:9px;font-weight:500;cursor:pointer">
           <input type="checkbox" id="genImgs" checked style="width:16px;height:16px;accent-color:var(--accent)">
           Gerar imagens por IA
         </label>
-        <div class="hint" style="margin-top:4px">Cada post volta já com uma imagem. As imagens são geradas aos poucos — aguarde alguns segundos.</div>
+        <div class="hint" style="margin-top:4px">As imagens são geradas aos poucos — aguarde alguns segundos.</div>
       </div>
 
       <button class="primary" id="gen">Gerar posts</button>
@@ -166,6 +190,20 @@
       <div class="section">
         <h2>Título</h2>
         <textarea id="edTitle" rows="2"></textarea>
+      </div>
+      <div class="section" id="edSubWrap" style="display:none">
+        <h2>Texto breve <span style="font-weight:400;text-transform:none;color:var(--muted)">(slide)</span></h2>
+        <textarea id="edSub" rows="2"></textarea>
+      </div>
+      <div class="section">
+        <h2>Tipografia</h2>
+        <label>Fonte</label>
+        <div class="chips" id="edFonts"></div>
+        <div class="range" style="margin-top:12px">
+          <label style="margin:0">Tamanho</label>
+          <input type="range" id="edFontSize" min="70" max="140" value="100">
+          <span class="qty" id="edFontVal">100</span>
+        </div>
       </div>
       <div class="section">
         <h2>Cores</h2>
@@ -199,6 +237,11 @@
         <button class="ghost" id="dlAll" style="display:none">Baixar todos</button>
       </div>
     </div>
+    <div id="captionBar" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:20px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:6px">Legenda da publicação</div>
+      <div id="capBarText" style="font-size:13px;line-height:1.55;white-space:pre-wrap"></div>
+      <button class="ghost" id="capBarCopy" style="margin-top:10px">Copiar legenda</button>
+    </div>
     <div class="empty" id="empty">
       <div class="big">nada gerado ainda</div>
       <div>Preencha a marca à esquerda e clique em <b>Gerar posts</b>.</div>
@@ -211,9 +254,10 @@
 
 <script>
 const S=1080; // export resolution
-const state={ palette:['#141414','#f5f2ec','#c8a97e','#7a8b7f','#e4e0d8'], tones:new Set(['minimalista']), posts:[], sel:null };
+const state={ palette:['#141414','#f5f2ec','#c8a97e','#7a8b7f','#e4e0d8'], tones:new Set(['minimalista']), posts:[], sel:null, mode:'individual', caption:'' };
 const TONES=['minimalista','sofisticado','divertido','acolhedor','técnico','inspirador'];
 const LAYOUTS=['manchete','dica','citação','foto','estatística'];
+const FONTS=[{label:'Inter',css:'Inter',w:700},{label:'Fraunces',css:'Fraunces',w:600},{label:'Poppins',css:'Poppins',w:700},{label:'Playfair',css:'"Playfair Display"',w:700},{label:'Bebas',css:'"Bebas Neue"',w:400}];
 
 // ---------- copy generator (stand-in for LLM) ----------
 const OPEN={minimalista:['','Menos é mais.','Simples assim.'],sofisticado:['A arte de ','O requinte de ','Sobre '],divertido:['Bora? ','Olha só isso 👀 ','Spoiler: '],acolhedor:['Vem comigo: ','Pra você que ','Com carinho: '],'técnico':['Guia rápido: ','Na prática: ','Passo a passo: '],inspirador:['Comece hoje: ','Você é capaz de ','O primeiro passo pra ']};
@@ -281,11 +325,11 @@ function render(post,canvas){
     if(post.img){
       const r=Math.max(S/post.img.width,S/post.img.height);const w=post.img.width*r,h=post.img.height*r;
       ctx.drawImage(post.img,(S-w)/2,(S-h)/2,w,h);
-      drawPhotoOverlay(ctx,post,ac);
+      post.slideTotal?drawCarouselOverlay(ctx,post):drawPhotoOverlay(ctx,post,ac);
     } else {
       const g=ctx.createLinearGradient(0,0,S,S);g.addColorStop(0,ac);g.addColorStop(1,bg);ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
       if(post.loading){ctx.textAlign='center';ctx.fillStyle=ink(ac);ctx.globalAlpha=.85;ctx.font='600 42px Inter';ctx.fillText('✦ gerando imagem…',S/2,S/2);ctx.globalAlpha=1;ctx.textAlign='left';}
-      else{drawPhotoOverlay(ctx,post,ac);}
+      else{post.slideTotal?drawCarouselOverlay(ctx,post):drawPhotoOverlay(ctx,post,ac);}
     }
   }
   else if(post.layout==='dica'){
@@ -320,7 +364,43 @@ function render(post,canvas){
 }
 
 // ---------- build posts ----------
-async function build(){
+async function build(){ return state.mode==='carousel' ? buildCarousel() : buildIndividual(); }
+async function fetchCarousel(title,context,n){
+  const res=await fetch('/api/generate-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'carousel',name:(document.getElementById('name').value||'a marca').trim(),tone:tone(),title,context,slides:n})});
+  if(!res.ok)throw new Error('http '+res.status);
+  return await res.json();
+}
+async function buildCarousel(){
+  const title=document.getElementById('carTitle').value.trim()||'Meu carrossel';
+  const context=document.getElementById('carContext').value.trim();
+  const n=+document.getElementById('carN').value;
+  const withImgs=document.getElementById('genImgs').checked;
+  const posts=[];
+  for(let i=0;i<n;i++){
+    const bg=state.palette[i%state.palette.length];
+    let accent=state.palette[(i+2)%state.palette.length]; if(accent===bg)accent=state.palette[(i+1)%state.palette.length];
+    posts.push({id:i,layout:'foto',imgStyle:'carousel',title:i===0?title:`Slide ${i+1}`,subtitle:'',caption:'',bg,accent,img:null,theme:`${title}. ${context}`,slideNo:i+1,slideTotal:n});
+  }
+  state.mode='carousel';state.posts=posts;state.sel=null;state.caption='';
+  renderGrid();
+  // textos primeiro (deixa o prompt de cada imagem mais coerente)
+  const st=document.getElementById('genStatus');st.textContent='✦ escrevendo o carrossel…';
+  try{
+    const data=await fetchCarousel(title,context,n);
+    if(data.slides&&data.slides.length){data.slides.forEach((s,i)=>{if(posts[i]){posts[i].title=String(s.titulo||posts[i].title).trim();posts[i].subtitle=String(s.texto||'').trim();posts[i].theme=`${s.titulo||title}. ${context}`;}});}
+    state.caption=String(data.legenda||'').trim();
+    renderGrid();
+    st.textContent='';
+  }catch(e){st.textContent='';}
+  // imagens em seguida
+  if(withImgs){
+    posts.forEach(p=>{p.loading=true;});renderGrid();
+    let idx=0;const CONC=2;
+    const next=()=>{if(idx>=posts.length)return;const p=posts[idx++];generateImageFor(p,{cb:next});};
+    for(let k=0;k<Math.min(CONC,posts.length);k++)next();
+  }
+}
+async function buildIndividual(){
   const themes=document.getElementById('themes').value.split('\n').map(t=>t.trim()).filter(Boolean);
   const src=themes.length?themes:['seu conteúdo','dicas rápidas','bastidores','novidades'];
   const qty=+document.getElementById('qty').value;
@@ -336,13 +416,13 @@ async function build(){
     if(withImgs){p.layout='foto';p.imgStyle=IMGSTYLES[i%IMGSTYLES.length];p.loading=true;}
     posts.push(p);
   }
-  state.posts=posts;state.sel=null;
+  state.mode='individual';state.caption='';state.posts=posts;state.sel=null;
   renderGrid();
   if(withImgs){
-    // uma imagem por vez, com pausa — o endpoint grátis derruba requisições simultâneas
-    let idx=0;
-    const next=()=>{if(idx>=posts.length)return;const p=posts[idx++];generateImageFor(p,{cb:()=>setTimeout(next,700)});};
-    next();
+    // 2 imagens em paralelo — backend próprio já lida bem; acelera o lote
+    let idx=0;const CONC=2;
+    const next=()=>{if(idx>=posts.length)return;const p=posts[idx++];generateImageFor(p,{cb:next});};
+    for(let k=0;k<Math.min(CONC,posts.length);k++)next();
   }
   // textos com LLM (uma chamada em lote pro backend)
   const st=document.getElementById('genStatus');st.textContent='✦ escrevendo textos com IA…';
@@ -354,16 +434,23 @@ async function build(){
     st.textContent='';
   }catch(e){st.textContent='';}
 }
+function updateCaptionBar(){
+  const bar=document.getElementById('captionBar');
+  if(state.mode==='carousel'&&state.caption){bar.style.display='block';document.getElementById('capBarText').textContent=state.caption;}
+  else bar.style.display='none';
+}
 function renderGrid(){
   const grid=document.getElementById('grid');grid.innerHTML='';
   document.getElementById('empty').style.display=state.posts.length?'none':'flex';
   document.getElementById('dlAll').style.display=state.posts.length?'inline-block':'none';
-  document.getElementById('mainTitle').textContent=state.posts.length?state.posts.length+' posts gerados':'Comece pela sua marca';
+  document.getElementById('dlAll').textContent=state.mode==='carousel'?'Baixar carrossel':'Baixar todos';
+  document.getElementById('mainTitle').textContent=state.posts.length?(state.mode==='carousel'?('Carrossel · '+state.posts.length+' slides'):(state.posts.length+' posts gerados')):'Comece pela sua marca';
+  updateCaptionBar();
   state.posts.forEach(p=>{
     const card=document.createElement('div');card.className='card'+(state.sel===p.id?' sel':'');
     const cv=document.createElement('canvas');render(p,cv);
     const meta=document.createElement('div');meta.className='meta';
-    meta.innerHTML=`<span class="lay">${p.layout}</span>`;
+    meta.innerHTML=`<span class="lay">${p.slideTotal?('Slide '+p.slideNo):p.layout}</span>`;
     const dl=document.createElement('button');dl.className='dl';dl.textContent='baixar ↓';
     dl.onclick=e=>{e.stopPropagation();download(p)};
     meta.appendChild(dl);
@@ -384,9 +471,19 @@ function openEditor(id){
   LAYOUTS.forEach(l=>{const o=document.createElement('div');o.className='lay-opt'+(l===p.layout?' on':'');o.textContent=l;o.onclick=()=>{p.layout=l;openEditor(id)};lp.appendChild(o)});
   document.getElementById('edTitle').value=p.title;
   document.getElementById('edTitle').oninput=e=>{p.title=e.target.value;renderGrid()};
+  // texto breve (só slides de carrossel)
+  const subWrap=document.getElementById('edSubWrap');
+  if(p.slideTotal){subWrap.style.display='block';const es=document.getElementById('edSub');es.value=p.subtitle||'';es.oninput=e=>{p.subtitle=e.target.value;renderGrid()};}
+  else subWrap.style.display='none';
+  // tipografia
+  const ef=document.getElementById('edFonts');ef.innerHTML='';
+  const curFont=p.font||'Inter';
+  FONTS.forEach(f=>{const c=document.createElement('div');c.className='chip'+(f.css===curFont?' on':'');c.textContent=f.label;c.style.fontFamily=f.css;c.onclick=()=>{p.font=f.css;ensureFonts().then(()=>{renderGrid();openEditor(id);});};ef.appendChild(c)});
+  const fs=document.getElementById('edFontSize');fs.value=p.fontScale||100;document.getElementById('edFontVal').textContent=(p.fontScale||100);
+  fs.oninput=e=>{p.fontScale=+e.target.value;document.getElementById('edFontVal').textContent=e.target.value;renderGrid()};
   swatches('edBg',c=>{p.bg=c;renderGrid();openEditor(id)},p.bg);
   swatches('edAccent',c=>{p.accent=c;renderGrid();openEditor(id)},p.accent);
-  document.getElementById('edCap').textContent=p.caption;
+  document.getElementById('edCap').textContent=(state.mode==='carousel'?state.caption:p.caption);
   const gi=document.getElementById('genImg');gi.disabled=false;gi.textContent=p.img?'✦ Gerar outra':'✦ Gerar imagem por IA';
   document.getElementById('imgStatus').textContent='';document.getElementById('edPrompt').value='';
 }
@@ -397,7 +494,7 @@ function swatches(elId,cb,cur){
 function closeEditor(){state.sel=null;document.getElementById('editor').style.display='none';document.getElementById('setup').style.display='block';renderGrid()}
 
 // ---------- download ----------
-function download(p){const cv=document.createElement('canvas');render(p,cv);let url;try{url=cv.toDataURL('image/png')}catch(e){alert('O navegador bloqueou o download desta imagem de IA por segurança (CORS). Gere novamente ou use uma foto própria.');return}const a=document.createElement('a');a.download=`criapramim_${p.layout}_${p.id+1}.png`;a.href=url;a.click()}
+function download(p){const cv=document.createElement('canvas');render(p,cv);let url;try{url=cv.toDataURL('image/png')}catch(e){alert('O navegador bloqueou o download desta imagem de IA por segurança (CORS). Gere novamente ou use uma foto própria.');return}const a=document.createElement('a');a.download=`criapramim_${p.slideTotal?('slide_'+p.slideNo):(p.layout+'_'+(p.id+1))}.png`;a.href=url;a.click()}
 function downloadAll(){state.posts.forEach((p,i)=>setTimeout(()=>download(p),i*250))}
 
 // ---------- palette UI ----------
@@ -419,7 +516,16 @@ document.getElementById('gen').onclick=build;
 document.getElementById('dlAll').onclick=downloadAll;
 document.getElementById('back').onclick=closeEditor;
 document.getElementById('dlOne').onclick=()=>download(state.posts.find(x=>x.id===state.sel));
-document.getElementById('copyCap').onclick=()=>{navigator.clipboard.writeText(state.posts.find(x=>x.id===state.sel).caption);document.getElementById('copyCap').textContent='Copiado ✓';setTimeout(()=>document.getElementById('copyCap').textContent='Copiar legenda',1200)};
+document.getElementById('copyCap').onclick=()=>{const txt=state.mode==='carousel'?state.caption:((state.posts.find(x=>x.id===state.sel)||{}).caption||'');navigator.clipboard.writeText(txt);document.getElementById('copyCap').textContent='Copiado ✓';setTimeout(()=>document.getElementById('copyCap').textContent='Copiar legenda',1200)};
+document.getElementById('carN').oninput=e=>document.getElementById('carNVal').textContent=e.target.value;
+document.getElementById('capBarCopy').onclick=()=>{navigator.clipboard.writeText(state.caption||'');const b=document.getElementById('capBarCopy');b.textContent='Copiado ✓';setTimeout(()=>b.textContent='Copiar legenda',1200)};
+document.querySelectorAll('#modePick .chip').forEach(c=>c.onclick=()=>{
+  state.mode=c.dataset.mode;
+  document.querySelectorAll('#modePick .chip').forEach(x=>x.classList.toggle('on',x===c));
+  document.getElementById('indivFields').style.display=state.mode==='carousel'?'none':'block';
+  document.getElementById('carFields').style.display=state.mode==='carousel'?'block':'none';
+  document.getElementById('gen').textContent=state.mode==='carousel'?'Gerar carrossel':'Gerar posts';
+});
 const edDrop=document.getElementById('edDrop'),edFile=document.getElementById('edFile');
 edDrop.onclick=()=>edFile.click();
 edFile.onchange=e=>{const f=e.target.files[0];if(!f)return;const p=state.posts.find(x=>x.id===state.sel);const img=new Image();img.onload=()=>{p.img=img;if(p.layout!=='foto')p.layout='foto';openEditor(p.id);renderGrid()};img.src=URL.createObjectURL(f)};
@@ -439,21 +545,59 @@ function generateImageFor(p,opts){
     .then(d=>{if(!d.dataUrl)throw new Error('no image');const img=new Image();img.onload=()=>{p.img=img;p.loading=false;p.layout='foto';renderGrid();opts.cb&&opts.cb(true);};img.onerror=()=>giveup();img.src=d.dataUrl;})
     .catch(()=>giveup());
 }
+function fontStr(post,base){
+  const f=FONTS.find(x=>x.css===(post.font||'Inter'))||FONTS[0];
+  const sc=(post.fontScale||100)/100;
+  return `${f.w} ${Math.round(base*sc)}px ${f.css}`;
+}
+function ensureFonts(){
+  if(!document.fonts||!document.fonts.load)return Promise.resolve();
+  return Promise.all(FONTS.map(f=>document.fonts.load(`${f.w} 40px ${f.css}`).catch(()=>{})));
+}
 function drawPhotoOverlay(ctx,post,ac){
   const style=post.imgStyle||'band';const t=post.title;
+  const lh=b=>Math.round(b*((post.fontScale||100)/100)+6);
   if(style==='scrim'){
     ctx.fillStyle='rgba(0,0,0,.42)';ctx.fillRect(0,0,S,S);
-    ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='700 82px Inter';roundText(ctx,t,S/2,S/2,S-180,92);ctx.textAlign='left';
+    ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font=fontStr(post,82);roundText(ctx,t,S/2,S/2,S-180,lh(82));ctx.textAlign='left';
   } else if(style==='top'){
     ctx.fillStyle=ac;ctx.globalAlpha=.94;ctx.fillRect(0,0,S,300);ctx.globalAlpha=1;
-    ctx.textAlign='left';ctx.fillStyle=ink(ac);ctx.font='700 58px Inter';roundText(ctx,t,80,162,S-160,66);
+    ctx.textAlign='left';ctx.fillStyle=ink(ac);ctx.font=fontStr(post,58);roundText(ctx,t,80,162,S-160,lh(58));
   } else if(style==='minimal'){
     const g=ctx.createLinearGradient(0,S-380,0,S);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.62)');ctx.fillStyle=g;ctx.fillRect(0,S-380,S,380);
-    ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='700 54px Inter';roundText(ctx,t,80,S-150,S-160,60);
+    ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font=fontStr(post,54);roundText(ctx,t,80,S-150,S-160,lh(54));
   } else {
     ctx.fillStyle=ac;ctx.globalAlpha=.92;ctx.fillRect(0,S-300,S,300);ctx.globalAlpha=1;
-    ctx.textAlign='left';ctx.fillStyle=ink(ac);ctx.font='700 60px Inter';roundText(ctx,t,80,S-150,S-160,66);
+    ctx.textAlign='left';ctx.fillStyle=ink(ac);ctx.font=fontStr(post,60);roundText(ctx,t,80,S-150,S-160,lh(60));
   }
+}
+function wrapLines(ctx,text,maxW){
+  const words=String(text||'').split(' ');let line='';const lines=[];
+  for(const w of words){const t=line?line+' '+w:w;if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=w}else line=t}
+  if(line)lines.push(line);return lines;
+}
+function drawCarouselOverlay(ctx,post){
+  const g=ctx.createLinearGradient(0,S-640,0,S);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.75)');ctx.fillStyle=g;ctx.fillRect(0,S-640,S,640);
+  const prev=ctx.textBaseline;ctx.textBaseline='top';ctx.textAlign='left';
+  const mx=80,maxW=S-160,base=post.slideNo===1?70:56,sc=(post.fontScale||100)/100;
+  const tlh=Math.round(base*sc*1.16);
+  ctx.font=fontStr(post,base);
+  const tLines=wrapLines(ctx,post.title,maxW);
+  let sLines=[],slh=0;const sSize=34;
+  if(post.subtitle){ctx.font='500 '+sSize+'px Inter';slh=Math.round(sSize*1.35);sLines=wrapLines(ctx,post.subtitle,maxW);}
+  const totalH=tLines.length*tlh+(sLines.length?20+sLines.length*slh:0);
+  let y=S-96-totalH;
+  ctx.fillStyle='#fff';ctx.font=fontStr(post,base);
+  tLines.forEach(l=>{ctx.fillText(l,mx,y);y+=tlh;});
+  if(sLines.length){y+=20;ctx.fillStyle='rgba(255,255,255,.85)';ctx.font='500 '+sSize+'px Inter';sLines.forEach(l=>{ctx.fillText(l,mx,y);y+=slh;});}
+  // contador n/N no canto superior direito
+  ctx.textBaseline='middle';ctx.textAlign='center';ctx.font='700 32px Inter';
+  const badge=`${post.slideNo}/${post.slideTotal}`;const bw=ctx.measureText(badge).width+44;
+  ctx.fillStyle=post.accent;ctx.beginPath();ctx.roundRect(S-bw-44,44,bw,56,28);ctx.fill();
+  ctx.fillStyle=ink(post.accent);ctx.fillText(badge,S-44-bw/2,73);
+  // "arraste →" na capa
+  if(post.slideNo===1){ctx.fillStyle='rgba(255,255,255,.92)';ctx.textAlign='right';ctx.textBaseline='alphabetic';ctx.font='600 30px Inter';ctx.fillText('arraste →',S-80,S-64);}
+  ctx.textBaseline=prev;ctx.textAlign='left';
 }
 document.getElementById('genImg').onclick=()=>{
   const p=state.posts.find(x=>x.id===state.sel);if(!p)return;

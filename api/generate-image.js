@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
   if (!key) return res.status(500).json({ error: 'missing OPENAI_API_KEY' });
 
   try {
-    const { prompt = '' } = req.body || {};
+    const { prompt = '', quality = 'medium' } = req.body || {};
     if (!prompt) return res.status(400).json({ error: 'missing prompt' });
 
     const r = await fetch('https://api.openai.com/v1/images/generations', {
@@ -16,6 +16,7 @@ module.exports = async (req, res) => {
         model: 'gpt-image-1',   // troque para 'dall-e-3' se sua conta ainda não tiver acesso ao gpt-image-1
         prompt,
         size: '1024x1024',
+        quality,                // 'low' = rápido/barato · 'medium' = equilíbrio · 'high' = melhor qualidade
         n: 1
       })
     });
