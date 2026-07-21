@@ -48,6 +48,20 @@
   .acc.open>.acc-b{grid-template-rows:1fr}
   .acc-in{overflow:hidden}
   .acc.open>.acc-b>.acc-in{padding-bottom:18px}
+  .acc-left{display:flex;align-items:center;gap:9px}
+  .acc-n{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#efece5;color:var(--muted);font-size:11px;font-weight:700;flex-shrink:0;transition:.15s}
+  .acc.open>.acc-h .acc-n{background:var(--accent);color:#fff}
+  /* preview dos estilos de carrossel */
+  .cstyle-area{position:relative}
+  .cstyle-pop{position:absolute;left:0;bottom:calc(100% + 8px);z-index:30;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 12px 10px;box-shadow:0 16px 44px -16px rgba(0,0,0,.35);display:none;width:250px}
+  .cstyle-pop.on{display:block}
+  .mini-row{display:flex;gap:6px;margin-bottom:8px}
+  .mini-slide{width:100%;aspect-ratio:1;border-radius:7px;position:relative;overflow:hidden}
+  .mini-slide.img{background:linear-gradient(140deg,#c8a97e,#7a8b7f)}
+  .mini-slide.img::after{content:"";position:absolute;left:5px;right:13px;bottom:5px;height:7px;background:rgba(255,255,255,.9);border-radius:2px}
+  .mini-slide.txt{background:#171512}
+  .mini-slide.txt i{position:absolute;left:6px;height:3px;border-radius:2px;background:rgba(255,255,255,.62);display:block}
+  .mini-cap{font-size:11.5px;color:var(--muted);line-height:1.4}
   label{display:block;font-size:13px;font-weight:500;margin:0 0 6px}
   input[type=text],textarea{
     width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
@@ -149,7 +163,7 @@
     <!-- SETUP PANEL -->
     <div id="setup">
       <div class="acc open">
-        <button class="acc-h" type="button">Marca <span class="chev">›</span></button>
+        <button class="acc-h" type="button"><span class="acc-left"><span class="acc-n">1</span>Marca</span><span class="chev">›</span></button>
         <div class="acc-b"><div class="acc-in">
           <div class="row">
             <div><label>Nome</label><input type="text" id="name" placeholder="Ex: Estúdio Aurora"></div>
@@ -159,7 +173,7 @@
       </div>
 
       <div class="acc">
-        <button class="acc-h" type="button">Leitura do perfil <span class="chev">›</span></button>
+        <button class="acc-h" type="button"><span class="acc-left"><span class="acc-n">2</span>Leitura do perfil</span><span class="chev">›</span></button>
         <div class="acc-b"><div class="acc-in">
           <label>Print da sua grade / referência</label>
           <div class="drop" id="drop">Solte um print da sua grade do Instagram<br>ou uma foto de referência</div>
@@ -174,7 +188,7 @@
       </div>
 
       <div class="acc">
-        <button class="acc-h" type="button">Estilo &amp; modo <span class="chev">›</span></button>
+        <button class="acc-h" type="button"><span class="acc-left"><span class="acc-n">3</span>Estilo &amp; modo</span><span class="chev">›</span></button>
         <div class="acc-b"><div class="acc-in">
           <label>Tom de voz</label>
           <div class="chips" id="tones"></div>
@@ -187,7 +201,7 @@
       </div>
 
       <div class="acc">
-        <button class="acc-h" type="button">Conteúdo <span class="chev">›</span></button>
+        <button class="acc-h" type="button"><span class="acc-left"><span class="acc-n">4</span>Conteúdo</span><span class="chev">›</span></button>
         <div class="acc-b"><div class="acc-in">
           <div id="indivFields">
             <label>Temas e ideias (um por linha)</label>
@@ -209,12 +223,15 @@
               <span class="qty" id="carNVal">5</span>
             </div>
             <label style="margin-top:14px">Estilo do carrossel</label>
-            <div class="chips" id="carStyle">
-              <div class="chip on" data-cstyle="all">Imagem em todos</div>
-              <div class="chip" data-cstyle="some">Imagem em alguns</div>
-              <div class="chip" data-cstyle="text">Só texto (design)</div>
+            <div class="cstyle-area">
+              <div class="chips" id="carStyle">
+                <div class="chip" data-cstyle="all">Imagem em todos</div>
+                <div class="chip" data-cstyle="some">Imagem em alguns</div>
+                <div class="chip" data-cstyle="text">Só texto (design)</div>
+              </div>
+              <div class="cstyle-pop" id="cstylePop"></div>
             </div>
-            <div class="hint" style="margin-top:6px">“Só texto” usa fundo de cor e formas geométricas — sem foto.</div>
+            <div class="hint" id="carStyleHint" style="margin-top:6px">Passe o mouse em cada opção pra ver um exemplo, e escolha um estilo.</div>
           </div>
           <div id="imgsSection" style="margin-top:16px">
             <label style="display:flex;align-items:center;gap:9px;font-weight:500;cursor:pointer;margin:0">
@@ -373,7 +390,7 @@
 
 <script>
 const S=1080; // export resolution
-const state={ palette:['#141414','#f5f2ec','#c8a97e','#7a8b7f','#e4e0d8'], tones:new Set(['minimalista']), posts:[], sel:null, mode:'individual', caption:'', face:null, carStyle:'all', showCounter:true, dirty:false };
+const state={ palette:['#141414','#f5f2ec','#c8a97e','#7a8b7f','#e4e0d8'], tones:new Set(['minimalista']), posts:[], sel:null, mode:'individual', caption:'', face:null, carStyle:null, showCounter:true, dirty:false };
 const TONES=['minimalista','sofisticado','divertido','acolhedor','técnico','inspirador'];
 const LAYOUTS=['manchete','dica','citação','foto','texto','estatística'];
 const FONTS=[{label:'Inter',css:'Inter',w:700},{label:'Fraunces',css:'Fraunces',w:600},{label:'Poppins',css:'Poppins',w:700},{label:'Playfair',css:'"Playfair Display"',w:700},{label:'Bebas',css:'"Bebas Neue"',w:400}];
@@ -523,8 +540,9 @@ async function buildCarousel(){
   const title=document.getElementById('carTitle').value.trim()||'Meu carrossel';
   const context=document.getElementById('carContext').value.trim();
   let n=+document.getElementById('carN').value;
-  let cstyle=state.carStyle||'all';
+  let cstyle=state.carStyle;
   if(isTrial()){n=Math.min(n,3);cstyle='text';}
+  else if(!cstyle){const h=document.getElementById('carStyleHint');h.style.color='var(--accent)';h.textContent='⚠ Escolha o estilo do carrossel acima.';return;}
   const isImg=i=> cstyle==='all' ? true : cstyle==='text' ? false : (i%2===0); // 'some': capa + alternados
   const posts=[];const deck=shuffle(TEXT_TPLS);let tk=0;
   for(let i=0;i<n;i++){
@@ -740,10 +758,21 @@ document.querySelectorAll('#modePick .chip').forEach(c=>c.onclick=()=>{
   document.getElementById('imgsSection').style.display=car?'none':'block'; // no carrossel o estilo controla as imagens
   document.getElementById('gen').textContent=car?'Gerar carrossel':'Gerar posts';
 });
-document.querySelectorAll('#carStyle .chip').forEach(c=>c.onclick=()=>{
-  state.carStyle=c.dataset.cstyle;
-  document.querySelectorAll('#carStyle .chip').forEach(x=>x.classList.toggle('on',x===c));
+function cstyleMini(mode){
+  const seq=mode==='all'?['img','img','img','img']:mode==='some'?['img','txt','img','txt']:['txt','txt','txt','txt'];
+  const cap=mode==='all'?'Foto de IA em todos os slides.':mode==='some'?'Metade com foto, metade em design (2 de 4).':'Todos em design (texto + formas), sem foto.';
+  const slides=seq.map(t=>t==='img'?'<div class="mini-slide img"></div>':'<div class="mini-slide txt"><i style="top:26%;width:55%"></i><i style="top:45%;width:70%"></i><i style="top:64%;width:40%"></i></div>').join('');
+  return '<div class="mini-row">'+slides+'</div><div class="mini-cap">'+cap+'</div>';
+}
+document.querySelectorAll('#carStyle .chip').forEach(c=>{
+  c.onclick=()=>{
+    state.carStyle=c.dataset.cstyle;
+    document.querySelectorAll('#carStyle .chip').forEach(x=>x.classList.toggle('on',x===c));
+    const h=document.getElementById('carStyleHint');h.style.color='';h.textContent='Passe o mouse em cada opção pra ver um exemplo, e escolha um estilo.';
+  };
+  c.addEventListener('mouseenter',()=>{const pop=document.getElementById('cstylePop');pop.innerHTML=cstyleMini(c.dataset.cstyle);pop.classList.add('on');});
 });
+{const a=document.querySelector('.cstyle-area');if(a)a.addEventListener('mouseleave',()=>document.getElementById('cstylePop').classList.remove('on'));}
 document.getElementById('shuffleDesign').onclick=()=>{const p=state.posts.find(x=>x.id===state.sel);if(p){styleTextSlide(p);renderGrid();openEditor(state.sel);}};
 const edDrop=document.getElementById('edDrop'),edFile=document.getElementById('edFile');
 edDrop.onclick=()=>edFile.click();
