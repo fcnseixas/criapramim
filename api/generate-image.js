@@ -4,9 +4,10 @@
 // COTA (opcional): se as env vars do Supabase estiverem configuradas, exige login e
 // desconta 1 do saldo do usuário por imagem gerada. Sem elas, funciona livremente.
 
-const SUPA_URL = process.env.SUPABASE_URL;
-const SERVICE = process.env.SUPABASE_SERVICE_ROLE;
-const ANON = process.env.SUPABASE_ANON_KEY;
+const clean = v => String(v || '').replace(/[^\x21-\x7E]/g, '');
+const SUPA_URL = clean(process.env.SUPABASE_URL);
+const SERVICE = clean(process.env.SUPABASE_SERVICE_ROLE);
+const ANON = clean(process.env.SUPABASE_ANON_KEY);
 const QUOTA_ON = !!(SUPA_URL && SERVICE);
 
 async function sbUser(token) {

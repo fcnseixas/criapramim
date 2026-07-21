@@ -1,9 +1,11 @@
 // Vercel Serverless Function — backoffice (só para admin).
 // Verifica o token do chamador, confirma role='admin' e executa ações com a service role.
 // Sempre responde JSON (inclusive nos erros), pra facilitar o diagnóstico.
-const SUPA_URL = process.env.SUPABASE_URL;
-const SERVICE = process.env.SUPABASE_SERVICE_ROLE;
-const ANON = process.env.SUPABASE_ANON_KEY;
+// limpa espaços, quebras e qualquer caractere não-ASCII colado por engano
+const clean = v => String(v || '').replace(/[^\x21-\x7E]/g, '');
+const SUPA_URL = clean(process.env.SUPABASE_URL);
+const SERVICE = clean(process.env.SUPABASE_SERVICE_ROLE);
+const ANON = clean(process.env.SUPABASE_ANON_KEY);
 
 async function getUser(token) {
   if (!token) return null;
