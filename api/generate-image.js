@@ -34,7 +34,7 @@ module.exports = async (req, res) => {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return res.status(500).json({ error: 'missing OPENAI_API_KEY' });
 
-  const { prompt = '', quality = 'medium', face = null } = req.body || {};
+  const { prompt = '', quality = 'medium', face = null, charge = true } = req.body || {};
   if (!prompt) return res.status(400).json({ error: 'missing prompt' });
 
   // ---- Cota (server-side) ----
@@ -49,7 +49,7 @@ module.exports = async (req, res) => {
     // reset mensal (janela de 30 dias)
     const start = new Date(prof.period_start || Date.now()).getTime();
     if (Date.now() - start >= 30 * 864e5) { prof.credits_used = 0; await sbPatch(uid, { credits_used: 0, period_start: new Date().toISOString() }); }
-    if ((prof.credits_used || 0) >= (prof.credits_total || 0)) {
+    if (charge && (prof.credits_used || 0) >= (prof.credits_total || 0)) {
       return res.status(402).json({ error: 'quota', message: 'Sua cota de imagens acabou este mês.', remaining: 0 });
     }
   }
@@ -84,11 +84,15 @@ module.exports = async (req, res) => {
     const b64 = data.data?.[0]?.b64_json;
     if (!b64) return res.status(502).json({ error: 'no image returned' });
 
-    // desconta a cota só depois de gerar com sucesso
+    // desconta a cota só depois de gerar com sucesso — e só quando charge=true
     if (QUOTA_ON && uid) {
-      const used = (prof.credits_used || 0) + 1;
-      await sbPatch(uid, { credits_used: used });
-      remaining = (prof.credits_total || 0) - used;
+      if (charge) {
+        const used = (prof.credits_used || 0) + 1;
+        await sbPatch(uid, { credits_used: used });
+        remaining = (prof.credits_total || 0) - used;
+      } else {
+        remaining = (prof.credits_total || 0) - (prof.credits_used || 0);
+      }
     }
 
     return res.status(200).json({ dataUrl: `data:image/png;base64,${b64}`, remaining });

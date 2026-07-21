@@ -2,6 +2,9 @@
   "name": "criapramim",
   "version": "0.1.0",
   "private": true,
-  "description": "Gerador de posts para Instagram com IA — landing + app + funções serverless (OpenAI).",
-  "license": "UNLICENSED"
+  "description": "Gerador de posts para Instagram com IA — landing + app + funções serverless (OpenAI + Stripe).",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "stripe": "^17.5.0"
+  }
 }

@@ -330,7 +330,7 @@
   <div class="mdl">
     <span class="mdlx" id="authClose">×</span>
     <div style="font-weight:800;font-size:18px;letter-spacing:-.02em;margin-bottom:14px">criapramim</div>
-    <div class="mtabs"><div class="mtab on" id="authTabEntrar">Entrar</div><div class="mtab" id="authTabCriar">Criar conta</div></div>
+    <div class="mtabs"><div class="mtab on" id="authTabEntrar">Entrar</div><div class="mtab" id="authTabCriar" style="display:none">Criar conta</div></div>
     <label style="font-size:13px">E-mail</label>
     <input type="email" id="authEmail" placeholder="voce@email.com" style="margin-bottom:10px">
     <label style="font-size:13px">Senha</label>
@@ -345,6 +345,16 @@
     <span class="mdlx" id="projClose">×</span>
     <div style="font-weight:700;font-size:16px;margin-bottom:12px">Meus projetos</div>
     <div id="projList"></div>
+  </div>
+</div>
+
+<div class="ov" id="planOverlay">
+  <div class="mdl" style="max-width:520px">
+    <span class="mdlx" id="planClose">×</span>
+    <div style="font-weight:700;font-size:16px;margin-bottom:4px">Planos</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Texto e design ilimitados. Você paga só pelas imagens de IA.</div>
+    <div id="planList" style="display:flex;flex-direction:column;gap:10px"></div>
+    <button class="ghost" id="buyPack" style="width:100%;margin-top:14px">Comprar +10 imagens — R$12,90</button>
   </div>
 </div>
 
@@ -628,7 +638,8 @@ function openEditor(id){
   const edCapEl=document.getElementById('edCap');
   edCapEl.value=(state.mode==='carousel'?state.caption:(p.caption||''));
   edCapEl.oninput=e=>{if(state.mode==='carousel'){state.caption=e.target.value;updateCaptionBar();}else{p.caption=e.target.value;}};
-  const gi=document.getElementById('genImg');gi.disabled=false;gi.textContent=p.img?'✦ Gerar outra':'✦ Gerar imagem por IA';
+  const gi=document.getElementById('genImg');gi.disabled=false;
+  gi.textContent=!p.img?'✦ Gerar imagem por IA':((p.regenCount||0)>=1?'✦ Gerar outra (−1 da cota)':'✦ Gerar outra (1ª grátis)');
   document.getElementById('imgStatus').textContent='';document.getElementById('edPrompt').value='';
   const uf=document.getElementById('useFaceWrap');
   if(state.face){uf.style.display='flex';const cb=document.getElementById('useFace');cb.checked=!!p.useFace;cb.onchange=e=>{p.useFace=e.target.checked};}
@@ -745,6 +756,7 @@ function generateImageFor(p,opts){
   };
   const body={prompt:imgPrompt(p,opts.custom,useFace)};
   if(useFace)body.face=state.face;
+  body.charge=opts.charge!==false;
   const headers={'Content-Type':'application/json'};if(state.token)headers.Authorization='Bearer '+state.token;
   fetch('/api/generate-image',{method:'POST',headers,body:JSON.stringify(body)})
     .then(r=>{
@@ -891,9 +903,11 @@ document.getElementById('genImg').onclick=()=>{
   const p=state.posts.find(x=>x.id===state.sel);if(!p)return;
   if(isTrial()){openAuth('criar');return;}
   const btn=document.getElementById('genImg'),st=document.getElementById('imgStatus');
-  btn.disabled=true;btn.textContent='Gerando…';st.textContent='Isso pode levar alguns segundos…';
-  generateImageFor(p,{custom:document.getElementById('edPrompt').value,cb:ok=>{
-    if(ok){openEditor(p.id);document.getElementById('imgStatus').textContent='Pronto ✓';document.getElementById('genImg').textContent='✦ Gerar outra';}
+  const isRegen=!!p.img;
+  const charge=isRegen?((p.regenCount||0)>=1):true;
+  btn.disabled=true;btn.textContent='Gerando…';st.textContent=charge?'Vai descontar 1 da sua cota…':'Isso pode levar alguns segundos…';
+  generateImageFor(p,{custom:document.getElementById('edPrompt').value,charge,cb:ok=>{
+    if(ok){if(isRegen)p.regenCount=(p.regenCount||0)+1;openEditor(p.id);document.getElementById('imgStatus').textContent='Pronto ✓';}
     else{btn.disabled=false;btn.textContent='✦ Gerar imagem por IA';st.textContent='Falhou. Tente de novo ou suba uma foto.';}
   }});
 };
@@ -928,16 +942,16 @@ async function authSubmit(){
 }
 function remaining(){return (state.creditsTotal==null)?null:Math.max(0,state.creditsTotal-(state.creditsUsed||0));}
 function setRemaining(rem){if(state.creditsTotal!=null)state.creditsUsed=Math.max(0,state.creditsTotal-rem);updateAuthUI();}
-async function refreshQuota(){if(!sb||!state.user)return;const {data,error}=await sb.from('profiles').select('credits_total,credits_used,role,plan').eq('id',state.user.id).single();if(!error&&data){state.creditsTotal=data.credits_total;state.creditsUsed=data.credits_used;state.role=data.role;}updateAuthUI();}
-function quotaEnded(){alert('Sua cota de imagens acabou este mês. Fale com o suporte pra aumentar o plano.');}
+async function refreshQuota(){if(!sb||!state.user)return;const {data,error}=await sb.from('profiles').select('credits_total,credits_used,role,plan').eq('id',state.user.id).single();if(!error&&data){state.creditsTotal=data.credits_total;state.creditsUsed=data.credits_used;state.role=data.role;state.plan=data.plan;}updateAuthUI();}
+function quotaEnded(){toast('Cota de imagens esgotada — veja os planos ou compre um pacote.');openPlans();}
 function updateAuthUI(){
   const area=document.getElementById('authArea');if(!area)return;
   if(!sb){area.innerHTML='<span class="quota">v0.1</span>';}
   else if(state.user){
     const rem=remaining();const q=(rem!=null)?('<span class="quota">restam '+rem+' de '+state.creditsTotal+' posts</span>'):'';
     const adminLink=(state.role==='admin')?' <a class="ghost" href="/admin.html" style="display:inline-block;text-decoration:none">Admin</a>':'';
-    area.innerHTML=q+' <button class="ghost" id="btnProjects">Meus projetos</button> <button class="ghost" id="btnSave">Salvar</button>'+adminLink+' <button class="ghost" id="btnLogout">Sair</button>';
-    document.getElementById('btnProjects').onclick=openProjects;document.getElementById('btnSave').onclick=saveProject;document.getElementById('btnLogout').onclick=async()=>{await sb.auth.signOut();};
+    area.innerHTML=q+' <button class="ghost" id="btnPlans">Planos</button> <button class="ghost" id="btnProjects">Meus projetos</button> <button class="ghost" id="btnSave">Salvar</button>'+adminLink+' <button class="ghost" id="btnLogout">Sair</button>';
+    document.getElementById('btnPlans').onclick=openPlans;document.getElementById('btnProjects').onclick=openProjects;document.getElementById('btnSave').onclick=saveProject;document.getElementById('btnLogout').onclick=async()=>{await sb.auth.signOut();};
   } else {
     area.innerHTML='<button class="btn-accent-sm" id="btnLogin">Entrar / Criar conta</button>';
     document.getElementById('btnLogin').onclick=()=>openAuth('entrar');
@@ -986,6 +1000,20 @@ document.getElementById('authClose').onclick=closeAuth;
 document.getElementById('authOverlay').onclick=e=>{if(e.target.id==='authOverlay')closeAuth();};
 document.getElementById('projClose').onclick=()=>document.getElementById('projOverlay').classList.remove('on');
 document.getElementById('projOverlay').onclick=e=>{if(e.target.id==='projOverlay')document.getElementById('projOverlay').classList.remove('on');};
+const PLANS=[
+  {key:'inicio',name:'Início',price:'R$29,90/mês',desc:'40 publicações · 8 imagens IA (≈20%)'},
+  {key:'criador',name:'Criador',price:'R$34,90/mês',desc:'60 publicações · 30 imagens IA (≈50%) · rosto nas artes'},
+  {key:'pro',name:'Pro',price:'R$49,90/mês',desc:'80 publicações · 80 imagens IA (100%) · prioridade'}
+];
+function renderPlans(){const el=document.getElementById('planList');el.innerHTML='';PLANS.forEach(p=>{const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:12px;padding:12px 14px';row.innerHTML='<div><div style="font-weight:700;font-size:14px">'+p.name+' · '+p.price+'</div><div style="font-size:12px;color:var(--muted)">'+p.desc+'</div></div>';const b=document.createElement('button');b.className='btn-accent-sm';const cur=state.plan===p.key;b.textContent=cur?'Plano atual':'Assinar';b.disabled=cur;b.onclick=()=>checkout(p.key);row.appendChild(b);el.appendChild(row);});}
+function openPlans(){if(!sb||!state.user){openAuth('entrar');return;}renderPlans();document.getElementById('planOverlay').classList.add('on');}
+async function checkout(plan){
+  try{const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+state.token},body:JSON.stringify({plan})});const d=await r.json();if(d.url){location.href=d.url;}else{alert('Não foi possível iniciar o pagamento: '+(d.message||d.error||'erro'));}}catch(e){alert('Erro: '+e.message);}
+}
+document.getElementById('planClose').onclick=()=>document.getElementById('planOverlay').classList.remove('on');
+document.getElementById('planOverlay').onclick=e=>{if(e.target.id==='planOverlay')document.getElementById('planOverlay').classList.remove('on');};
+document.getElementById('buyPack').onclick=()=>checkout('pack');
+if(location.search.indexOf('billing=ok')>=0){history.replaceState({},'','/app.html');setTimeout(()=>{if(state.user)refreshQuota();toast('Pagamento recebido! Seu plano ativa em instantes.');},600);}
 initSupabase();
 
 showPalette();

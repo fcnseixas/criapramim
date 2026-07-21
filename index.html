@@ -96,7 +96,7 @@
   .diff-item p{color:#b9b3a8;font-size:14.5px}
   @media(max-width:760px){.diff{padding:40px 26px}.diff-grid{grid-template-columns:1fr;gap:26px}}
   /* pricing */
-  .prices{display:grid;grid-template-columns:1fr 1fr;gap:22px;max-width:800px;margin:0 auto}
+  .prices{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:1000px;margin:0 auto}
   .price{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:34px;transition:transform .25s,box-shadow .25s}
   .price:hover{box-shadow:0 20px 46px -26px rgba(0,0,0,.25)}
   .price.hi{border:2px solid var(--ink);position:relative}
@@ -111,7 +111,7 @@
   .price .btn{width:100%;text-align:center}
   .compare{text-align:center;color:var(--muted);font-size:14px;margin-top:26px}
   .strike{text-decoration:line-through;opacity:.6}
-  @media(max-width:640px){.prices{grid-template-columns:1fr}}
+  @media(max-width:820px){.prices{grid-template-columns:1fr}}
   /* testimonials */
   .quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
   .q{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:26px;transition:transform .25s,box-shadow .25s}
@@ -234,25 +234,32 @@
   <div class="wrap">
     <div class="eyebrow reveal">Preços</div>
     <div class="h2 reveal">Metade do preço. O dobro do gosto.</div>
-    <p class="lead reveal">Comece de graça. Assine quando fizer sentido.</p>
+    <p class="lead reveal">Texto e design ilimitados em todos os planos. Você paga só pelas <b>imagens de IA</b> — o que realmente tem custo.</p>
     <div class="prices">
       <div class="price reveal">
-        <div class="plan">Teste grátis</div>
-        <div class="val">R$0</div>
-        <div class="desc">7 dias pra explorar com uma marca.</div>
-        <ul><li>Leitura de perfil por IA</li><li>Até 10 posts gerados</li><li>Todos os layouts</li><li>Download em alta</li></ul>
-        <a class="btn btn-ghost" href="app.html">Criar conta grátis</a>
+        <div class="plan">Início</div>
+        <div class="val">R$29,90<small>/mês</small></div>
+        <div class="desc">Pra quem começa a postar com consistência.</div>
+        <ul><li>40 publicações/mês</li><li><b>8 imagens por IA</b> (≈20%)</li><li>Posts e carrosséis só-texto ilimitados</li><li>Todos os layouts + edição completa</li><li>Salvar projetos · download em alta</li></ul>
+        <a class="btn btn-ghost" href="app.html">Começar</a>
       </div>
       <div class="price hi reveal">
         <div class="tagpop">Mais popular</div>
+        <div class="plan">Criador</div>
+        <div class="val">R$34,90<small>/mês</small></div>
+        <div class="desc">Pra quem posta toda semana com fotos.</div>
+        <ul><li>60 publicações/mês</li><li><b>30 imagens por IA</b> (≈50%)</li><li>Seu rosto nas artes</li><li>Tudo do Início</li><li>Recriar textos ilimitado</li></ul>
+        <a class="btn btn-dark" href="app.html">Assinar</a>
+      </div>
+      <div class="price reveal">
         <div class="plan">Pro</div>
-        <div class="val">R$49<small>/mês</small></div>
-        <div class="desc">Pra quem posta toda semana.</div>
-        <ul><li>Posts ilimitados (design padrão)</li><li>Leitura de perfil e tom de voz</li><li>Todos os layouts + edição completa</li><li>Sem marca d'água · export em alta</li><li>Créditos de imagem por IA (add-on)</li></ul>
-        <a class="btn btn-dark" href="app.html">Assinar o Pro</a>
+        <div class="val">R$49,90<small>/mês</small></div>
+        <div class="desc">Pra quem vive de imagem.</div>
+        <ul><li>80 publicações/mês</li><li><b>80 imagens por IA</b> (100%)</li><li>Tudo do Criador</li><li>Prioridade na geração</li><li>Pacotes extras com desconto</li></ul>
+        <a class="btn btn-ghost" href="app.html">Assinar</a>
       </div>
     </div>
-    <p class="compare reveal">Ferramentas parecidas cobram <span class="strike">R$99/mês</span> pelo plano completo. Aqui é <b>R$49</b> — e você não fica preso a nada.</p>
+    <p class="compare reveal">Acabou a cota de imagens? Compre um pacote de <b>+10 imagens por R$12,90</b>, sem trocar de plano. E cada imagem gerada tem <b>1 regeneração grátis</b>.</p>
   </div>
 </section>
 
@@ -298,7 +305,7 @@
     </div>
     <div class="tabs">
       <div class="tab" id="tabEntrar" onclick="switchTab('entrar')">Entrar</div>
-      <div class="tab" id="tabCriar" onclick="switchTab('criar')">Criar conta</div>
+      <div class="tab" id="tabCriar" onclick="switchTab('criar')" style="display:none">Criar conta</div>
     </div>
     <div class="field" id="fName" style="display:none"><label>Seu nome</label><input type="text" id="mName" placeholder="Como podemos te chamar?"></div>
     <div class="field"><label>E-mail</label><input type="email" id="mEmail" placeholder="voce@email.com"></div>
