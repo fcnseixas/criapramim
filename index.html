@@ -311,9 +311,9 @@
 
 <!-- plain-JS interactions (always available) -->
 <script>
-  // COLE aqui os MESMOS valores públicos do app.html:
-  const SUPA_URL='';
-  const SUPA_KEY='';
+  // valores públicos do Supabase (anon key — seguro no navegador)
+  const SUPA_URL='https://gvyxxfwfcpoylbmdxpbf.supabase.co';
+  const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2eXh4ZndmY3BveWxibWR4cGJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1OTE0NzksImV4cCI6MjEwMDE2NzQ3OX0.Ybd5mEJ9K8hjUCO6-iQEkyFScGPgBFHurizE36lj6UE';
   let sb=null;
   if(SUPA_URL&&SUPA_KEY&&window.supabase){sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);}
   const ov=document.getElementById('overlay');
