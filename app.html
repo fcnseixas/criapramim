@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Poppins:wght@600;700;800&family=Playfair+Display:wght@600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bg:#FBF9F4; --panel:#ffffff; --ink:#171512; --muted:#8a857c;
@@ -105,6 +106,17 @@
   #previewOverlay.on{display:flex}
   #previewCanvas{width:min(64vh,560px);height:min(64vh,560px);border-radius:16px;box-shadow:0 30px 80px -20px rgba(0,0,0,.55);background:#fff}
   #previewHint{position:absolute;bottom:18px;left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:12px;font-weight:500;pointer-events:none}
+  /* contas / modais */
+  .btn-accent-sm{background:var(--accent);color:#fff;border:0;border-radius:9px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .btn-accent-sm:hover{filter:brightness(.95)}
+  .quota{font-size:12px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+  .ov{position:fixed;inset:0;background:rgba(23,21,18,.5);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+  .ov.on{display:flex}
+  .mdl{background:#fff;border-radius:18px;width:100%;max-width:400px;padding:28px;position:relative;box-shadow:0 30px 70px -20px rgba(0,0,0,.4)}
+  .mdlx{position:absolute;top:14px;right:18px;font-size:22px;color:var(--muted);cursor:pointer;line-height:1}
+  .mtabs{display:flex;gap:6px;background:#f2efe8;border-radius:11px;padding:4px;margin-bottom:16px}
+  .mtab{flex:1;text-align:center;padding:8px;border-radius:8px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer}
+  .mtab.on{background:#fff;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -114,7 +126,7 @@
     <div class="wordmark">criapramim<span>.app</span></div>
     <div class="tag">seu conteúdo, criado pra você</div>
   </div>
-  <div style="font-size:12px;color:var(--muted)">protótipo <span class="badge">v0.1</span></div>
+  <div id="authArea" style="display:flex;align-items:center;gap:10px"></div>
 </header>
 
 <div class="layout">
@@ -272,6 +284,10 @@
         <button class="ghost" id="dlAll" style="display:none">Baixar todos</button>
       </div>
     </div>
+    <div id="trialBanner" style="display:none;align-items:center;justify-content:space-between;gap:12px;background:#FBE7E0;border:1px solid #f0c9bd;color:#9a3d28;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:13px">
+      <span>Modo teste — até 3 posts e sem imagens por IA. Crie sua conta pra liberar tudo e salvar seus projetos.</span>
+      <button class="btn-accent-sm" id="trialSignup" style="white-space:nowrap">Criar conta grátis</button>
+    </div>
     <div id="captionBar" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px;flex-wrap:wrap">
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700">Legenda da publicação</div>
@@ -292,6 +308,28 @@
 </div>
 
 <div id="previewOverlay"><canvas id="previewCanvas"></canvas><div id="previewHint">clique fora para voltar</div></div>
+
+<div class="ov" id="authOverlay">
+  <div class="mdl">
+    <span class="mdlx" id="authClose">×</span>
+    <div style="font-weight:800;font-size:18px;letter-spacing:-.02em;margin-bottom:14px">criapramim</div>
+    <div class="mtabs"><div class="mtab on" id="authTabEntrar">Entrar</div><div class="mtab" id="authTabCriar">Criar conta</div></div>
+    <label style="font-size:13px">E-mail</label>
+    <input type="email" id="authEmail" placeholder="voce@email.com" style="margin-bottom:10px">
+    <label style="font-size:13px">Senha</label>
+    <input type="password" id="authPw" placeholder="••••••••" style="margin-bottom:14px">
+    <button class="primary" id="authSubmit" data-mode="entrar">Entrar</button>
+    <div id="authErr" style="font-size:12px;margin-top:10px"></div>
+  </div>
+</div>
+
+<div class="ov" id="projOverlay">
+  <div class="mdl" style="max-width:460px">
+    <span class="mdlx" id="projClose">×</span>
+    <div style="font-weight:700;font-size:16px;margin-bottom:12px">Meus projetos</div>
+    <div id="projList"></div>
+  </div>
+</div>
 
 <footer>criapramim — protótipo de conceito · gera, edita e baixa · você publica onde quiser</footer>
 
@@ -446,8 +484,9 @@ async function fetchCarousel(title,context,n){
 async function buildCarousel(){
   const title=document.getElementById('carTitle').value.trim()||'Meu carrossel';
   const context=document.getElementById('carContext').value.trim();
-  const n=+document.getElementById('carN').value;
-  const cstyle=state.carStyle||'all';
+  let n=+document.getElementById('carN').value;
+  let cstyle=state.carStyle||'all';
+  if(isTrial()){n=Math.min(n,3);cstyle='text';}
   const isImg=i=> cstyle==='all' ? true : cstyle==='text' ? false : (i%2===0); // 'some': capa + alternados
   const posts=[];const deck=shuffle(TEXT_TPLS);let tk=0;
   for(let i=0;i<n;i++){
@@ -481,8 +520,9 @@ async function buildCarousel(){
 async function buildIndividual(){
   const themes=document.getElementById('themes').value.split('\n').map(t=>t.trim()).filter(Boolean);
   const src=themes.length?themes:['seu conteúdo','dicas rápidas','bastidores','novidades'];
-  const qty=+document.getElementById('qty').value;
-  const withImgs=document.getElementById('genImgs').checked;
+  let qty=+document.getElementById('qty').value;
+  let withImgs=document.getElementById('genImgs').checked;
+  if(isTrial()){qty=Math.min(qty,3);withImgs=false;}
   const IMGSTYLES=['band','scrim','minimal','top'];
   const posts=[];
   for(let i=0;i<qty;i++){
@@ -674,9 +714,14 @@ function generateImageFor(p,opts){
   };
   const body={prompt:imgPrompt(p,opts.custom,useFace)};
   if(useFace)body.face=state.face;
-  fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
-    .then(r=>{if(!r.ok)throw new Error('http '+r.status);return r.json();})
-    .then(d=>{if(!d.dataUrl)throw new Error('no image');const img=new Image();img.onload=()=>{p.img=img;p.loading=false;p.layout='foto';renderGrid();opts.cb&&opts.cb(true);};img.onerror=()=>giveup();img.src=d.dataUrl;})
+  const headers={'Content-Type':'application/json'};if(state.token)headers.Authorization='Bearer '+state.token;
+  fetch('/api/generate-image',{method:'POST',headers,body:JSON.stringify(body)})
+    .then(r=>{
+      if(r.status===401){p.loading=false;renderGrid();openAuth('criar');opts.cb&&opts.cb(false);return null;}
+      if(r.status===402){p.loading=false;renderGrid();quotaEnded();opts.cb&&opts.cb(false);return null;}
+      if(!r.ok)throw new Error('http '+r.status);return r.json();
+    })
+    .then(d=>{if(!d)return;if(!d.dataUrl)throw new Error('no image');if(d.remaining!=null)setRemaining(d.remaining);const img=new Image();img.onload=()=>{p.img=img;p.loading=false;p.layout='foto';renderGrid();opts.cb&&opts.cb(true);};img.onerror=()=>giveup();img.src=d.dataUrl;})
     .catch(()=>giveup());
 }
 function fontStr(post,base){
@@ -813,6 +858,7 @@ function drawTextSlide(ctx,post){
 }
 document.getElementById('genImg').onclick=()=>{
   const p=state.posts.find(x=>x.id===state.sel);if(!p)return;
+  if(isTrial()){openAuth('criar');return;}
   const btn=document.getElementById('genImg'),st=document.getElementById('imgStatus');
   btn.disabled=true;btn.textContent='Gerando…';st.textContent='Isso pode levar alguns segundos…';
   generateImageFor(p,{custom:document.getElementById('edPrompt').value,cb:ok=>{
@@ -820,6 +866,95 @@ document.getElementById('genImg').onclick=()=>{
     else{btn.disabled=false;btn.textContent='✦ Gerar imagem por IA';st.textContent='Falhou. Tente de novo ou suba uma foto.';}
   }});
 };
+
+// ================= CONTAS + COTA + SALVAR (Supabase) =================
+const SUPA_URL='https://gvyxxfwfcpoylbmdxpbf.supabase.co';   // COLE aqui a URL do seu projeto Supabase (ex: https://xxxx.supabase.co)
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2eXh4ZndmY3BveWxibWR4cGJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1OTE0NzksImV4cCI6MjEwMDE2NzQ3OX0.Ybd5mEJ9K8hjUCO6-iQEkyFScGPgBFHurizE36lj6UE';   // COLE aqui a anon public key
+let sb=null;
+function isTrial(){return !!(sb&&!state.user);}
+function toast(msg){const t=document.getElementById('genStatus');if(!t)return;t.textContent=msg;setTimeout(()=>{if(t.textContent===msg)t.textContent='';},1800);}
+function initSupabase(){
+  if(SUPA_URL&&SUPA_KEY&&window.supabase){
+    sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+    sb.auth.getSession().then(({data})=>onSession(data.session));
+    sb.auth.onAuthStateChange((_e,session)=>onSession(session));
+  }
+  updateAuthUI();
+}
+function onSession(session){state.user=session?session.user:null;state.token=session?session.access_token:null;updateAuthUI();if(state.user)refreshQuota();}
+function openAuth(tab){if(!sb){alert('Login ainda não configurado (falta o Supabase).');return;}document.getElementById('authOverlay').classList.add('on');authTab(tab||'entrar');document.getElementById('authErr').textContent='';}
+function closeAuth(){document.getElementById('authOverlay').classList.remove('on');}
+function authTab(t){const c=t==='criar';document.getElementById('authTabCriar').classList.toggle('on',c);document.getElementById('authTabEntrar').classList.toggle('on',!c);const b=document.getElementById('authSubmit');b.textContent=c?'Criar conta':'Entrar';b.dataset.mode=t;}
+async function authSubmit(){
+  const email=document.getElementById('authEmail').value.trim(),pw=document.getElementById('authPw').value;
+  const mode=document.getElementById('authSubmit').dataset.mode||'entrar';const err=document.getElementById('authErr');
+  const b=document.getElementById('authSubmit');b.disabled=true;const prev=b.textContent;b.textContent='…';
+  try{
+    if(mode==='criar'){const {error}=await sb.auth.signUp({email,password:pw});if(error)throw error;err.style.color='#2a7';err.textContent='Conta criada! Se pedir confirmação, confira o e-mail e depois entre.';}
+    else{const {error}=await sb.auth.signInWithPassword({email,password:pw});if(error)throw error;closeAuth();}
+  }catch(e){err.style.color='#c33';err.textContent=(e&&e.message)||'Erro';}
+  b.disabled=false;b.textContent=prev;
+}
+function remaining(){return (state.creditsTotal==null)?null:Math.max(0,state.creditsTotal-(state.creditsUsed||0));}
+function setRemaining(rem){if(state.creditsTotal!=null)state.creditsUsed=Math.max(0,state.creditsTotal-rem);updateAuthUI();}
+async function refreshQuota(){if(!sb||!state.user)return;const {data,error}=await sb.from('profiles').select('credits_total,credits_used,role,plan').eq('id',state.user.id).single();if(!error&&data){state.creditsTotal=data.credits_total;state.creditsUsed=data.credits_used;state.role=data.role;}updateAuthUI();}
+function quotaEnded(){alert('Sua cota de imagens acabou este mês. Fale com o suporte pra aumentar o plano.');}
+function updateAuthUI(){
+  const area=document.getElementById('authArea');if(!area)return;
+  if(!sb){area.innerHTML='<span class="quota">v0.1</span>';}
+  else if(state.user){
+    const rem=remaining();const q=(rem!=null)?('<span class="quota">restam '+rem+' de '+state.creditsTotal+' posts</span>'):'';
+    area.innerHTML=q+' <button class="ghost" id="btnProjects">Meus projetos</button> <button class="ghost" id="btnSave">Salvar</button> <button class="ghost" id="btnLogout">Sair</button>';
+    document.getElementById('btnProjects').onclick=openProjects;document.getElementById('btnSave').onclick=saveProject;document.getElementById('btnLogout').onclick=async()=>{await sb.auth.signOut();};
+  } else {
+    area.innerHTML='<button class="btn-accent-sm" id="btnLogin">Entrar / Criar conta</button>';
+    document.getElementById('btnLogin').onclick=()=>openAuth('entrar');
+  }
+  const banner=document.getElementById('trialBanner');if(banner)banner.style.display=isTrial()?'flex':'none';
+}
+function serializeState(){return {v:1,mode:state.mode,caption:state.caption,palette:state.palette,showCounter:state.showCounter,carStyle:state.carStyle,face:state.face,brand:{name:document.getElementById('name').value,handle:document.getElementById('handle').value},posts:state.posts.map(p=>({...p,img:p.img?(p.img.src||null):null}))};}
+function applyState(d){
+  state.mode=d.mode||'individual';state.caption=d.caption||'';if(d.palette)state.palette=d.palette;state.showCounter=d.showCounter!==false;state.carStyle=d.carStyle||'all';state.face=d.face||null;
+  if(d.brand){document.getElementById('name').value=d.brand.name||'';document.getElementById('handle').value=d.brand.handle||'';}
+  showPalette();
+  const posts=(d.posts||[]).map(p=>{const q={...p};const src=q.img;q.img=null;q._src=src;return q;});
+  state.posts=posts;state.sel=null;renderGrid();
+  posts.forEach(p=>{if(p._src){const im=new Image();im.onload=()=>{p.img=im;delete p._src;renderGrid();};im.src=p._src;}});
+}
+async function saveProject(){
+  if(!sb||!state.user){openAuth('criar');return;}
+  const name=prompt('Nome do projeto:',state.currentProjectName||('Projeto '+new Date().toLocaleDateString('pt-BR')));if(!name)return;
+  const row={user_id:state.user.id,name,data:serializeState(),updated_at:new Date().toISOString()};if(state.currentProjectId)row.id=state.currentProjectId;
+  const {data,error}=await sb.from('projects').upsert(row).select().single();
+  if(error){alert('Erro ao salvar: '+error.message);return;}
+  state.currentProjectId=data.id;state.currentProjectName=data.name;toast('Projeto salvo ✓');
+}
+async function openProjects(){
+  if(!sb||!state.user){openAuth('entrar');return;}
+  const list=document.getElementById('projList');list.innerHTML='<div style="color:var(--muted);font-size:13px">carregando…</div>';
+  document.getElementById('projOverlay').classList.add('on');
+  const {data,error}=await sb.from('projects').select('id,name,updated_at').order('updated_at',{ascending:false});
+  if(error){list.innerHTML='<div style="color:#c33;font-size:13px">'+error.message+'</div>';return;}
+  if(!data||!data.length){list.innerHTML='<div style="color:var(--muted);font-size:13px">Nenhum projeto salvo ainda.</div>';return;}
+  list.innerHTML='';
+  data.forEach(pr=>{const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)';
+    const info=document.createElement('div');info.innerHTML='<div style="font-weight:600;font-size:14px">'+pr.name+'</div><div style="font-size:11px;color:var(--muted)">'+new Date(pr.updated_at).toLocaleString('pt-BR')+'</div>';
+    const acts=document.createElement('div');acts.style.cssText='display:flex;gap:6px';
+    const b1=document.createElement('button');b1.className='ghost';b1.textContent='Abrir';b1.onclick=()=>loadProject(pr.id);
+    const b2=document.createElement('button');b2.className='ghost';b2.textContent='Apagar';b2.onclick=()=>deleteProject(pr.id);
+    acts.appendChild(b1);acts.appendChild(b2);row.appendChild(info);row.appendChild(acts);list.appendChild(row);});
+}
+async function loadProject(id){const {data,error}=await sb.from('projects').select('*').eq('id',id).single();if(error){alert(error.message);return;}applyState(data.data);state.currentProjectId=data.id;state.currentProjectName=data.name;document.getElementById('projOverlay').classList.remove('on');closeEditor();}
+async function deleteProject(id){if(!confirm('Apagar este projeto?'))return;const {error}=await sb.from('projects').delete().eq('id',id);if(error){alert(error.message);return;}openProjects();}
+document.getElementById('authTabEntrar').onclick=()=>authTab('entrar');
+document.getElementById('authTabCriar').onclick=()=>authTab('criar');
+document.getElementById('authSubmit').onclick=authSubmit;
+document.getElementById('authClose').onclick=closeAuth;
+document.getElementById('authOverlay').onclick=e=>{if(e.target.id==='authOverlay')closeAuth();};
+document.getElementById('projClose').onclick=()=>document.getElementById('projOverlay').classList.remove('on');
+document.getElementById('projOverlay').onclick=e=>{if(e.target.id==='projOverlay')document.getElementById('projOverlay').classList.remove('on');};
+document.getElementById('trialSignup').onclick=()=>openAuth('criar');
+initSupabase();
 
 showPalette();
 </script>
