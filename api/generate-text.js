@@ -28,6 +28,15 @@ Para cada slide gere:
 - "texto": uma frase curta de apoio (pode ser vazia em slides muito visuais).
 Gere também UMA legenda única para a publicação inteira ("legenda"), com 2 a 4 frases, chamada para ação e 3 hashtags no fim.
 Responda um objeto JSON no formato {"slides":[{"titulo":"","texto":""}],"legenda":""}.`;
+    } else if (mode === 'caption') {
+      const title = body.title || '';
+      const context = body.context || '';
+      const points = (body.points || []).filter(Boolean);
+      user =
+`Marca: "${name}". Tom de voz: ${tone}.
+Escreva UMA legenda de Instagram para a publicação sobre "${title}".${context ? ' Contexto: ' + context + '.' : ''}${points.length ? ' Pontos abordados: ' + points.join('; ') + '.' : ''}
+A legenda deve ter 2 a 5 frases, envolvente, terminar com uma chamada para ação e 3 hashtags no fim.
+Responda um objeto JSON no formato {"legenda":""}.`;
     } else {
       const qty = body.qty || 6;
       const themes = body.themes || [];
@@ -58,6 +67,7 @@ Responda um objeto JSON no formato {"posts":[{"titulo":"","legenda":"","hashtags
     const data = await r.json();
     const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
     if (mode === 'carousel') return res.status(200).json({ slides: parsed.slides || [], legenda: parsed.legenda || '' });
+    if (mode === 'caption') return res.status(200).json({ legenda: parsed.legenda || '' });
     return res.status(200).json({ posts: parsed.posts || [] });
   } catch (e) {
     return res.status(500).json({ error: String(e) });
