@@ -133,12 +133,15 @@
 </head>
 <body>
 <header>
-  <div class="brand" style="align-items:center">
+  <div class="brand" style="align-items:center;cursor:pointer" onclick="leaveApp()" title="Voltar ao início">
     <svg viewBox="0 0 48 48" fill="none" style="width:28px;height:28px"><rect x="4" y="4" width="40" height="40" rx="13" fill="#171512"/><g transform="translate(9.5,13) scale(0.86)"><path d="M12 0C12 6.6 6.6 12 0 12 6.6 12 12 17.4 12 24 12 17.4 17.4 12 24 12 17.4 12 12 6.6 12 0Z" fill="#F7F4EF"/></g><g transform="translate(28.5,9.5) scale(0.4)"><path d="M12 0C12 6.6 6.6 12 0 12 6.6 12 12 17.4 12 24 12 17.4 17.4 12 24 12 17.4 12 12 6.6 12 0Z" fill="#E8654A"/></g></svg>
     <div class="wordmark">criapramim<span>.app</span></div>
     <div class="tag">seu conteúdo, criado pra você</div>
   </div>
-  <div id="authArea" style="display:flex;align-items:center;gap:10px"></div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <button class="ghost" onclick="leaveApp()">← Início</button>
+    <div id="authArea" style="display:flex;align-items:center;gap:10px"></div>
+  </div>
 </header>
 
 <div class="layout">
@@ -349,7 +352,7 @@
 
 <script>
 const S=1080; // export resolution
-const state={ palette:['#141414','#f5f2ec','#c8a97e','#7a8b7f','#e4e0d8'], tones:new Set(['minimalista']), posts:[], sel:null, mode:'individual', caption:'', face:null, carStyle:'all', showCounter:true };
+const state={ palette:['#141414','#f5f2ec','#c8a97e','#7a8b7f','#e4e0d8'], tones:new Set(['minimalista']), posts:[], sel:null, mode:'individual', caption:'', face:null, carStyle:'all', showCounter:true, dirty:false };
 const TONES=['minimalista','sofisticado','divertido','acolhedor','técnico','inspirador'];
 const LAYOUTS=['manchete','dica','citação','foto','texto','estatística'];
 const FONTS=[{label:'Inter',css:'Inter',w:700},{label:'Fraunces',css:'Fraunces',w:600},{label:'Poppins',css:'Poppins',w:700},{label:'Playfair',css:'"Playfair Display"',w:700},{label:'Bebas',css:'"Bebas Neue"',w:400}];
@@ -511,7 +514,7 @@ async function buildCarousel(){
     if(!image)styleTextSlide(p,deck[tk++%deck.length]);
     posts.push(p);
   }
-  state.mode='carousel';state.posts=posts;state.sel=null;state.caption='';
+  state.mode='carousel';state.posts=posts;state.sel=null;state.caption='';state.dirty=true;
   renderGrid();
   // textos primeiro (deixa o prompt de cada imagem mais coerente)
   const st=document.getElementById('genStatus');st.textContent='✦ escrevendo o carrossel…';
@@ -548,7 +551,7 @@ async function buildIndividual(){
     if(withImgs){p.layout='foto';p.imgStyle=IMGSTYLES[i%IMGSTYLES.length];p.loading=true;}
     posts.push(p);
   }
-  state.mode='individual';state.caption='';state.posts=posts;state.sel=null;
+  state.mode='individual';state.caption='';state.posts=posts;state.sel=null;state.dirty=true;
   renderGrid();
   if(withImgs){
     // 2 imagens em paralelo — backend próprio já lida bem; acelera o lote
@@ -671,6 +674,15 @@ document.querySelectorAll('#setup .acc-h').forEach(h=>h.onclick=()=>{
   document.querySelectorAll('#setup .acc').forEach(a=>a.classList.remove('open'));
   if(!wasOpen)acc.classList.add('open');
 });
+function hasUnsaved(){return state.posts.length>0&&state.dirty;}
+function leaveApp(){
+  if(hasUnsaved()){
+    const msg=(sb&&state.user)?'Você tem trabalho não salvo. Salve pelo botão “Salvar” antes de sair, ou continue e perca as alterações.\n\nSair para a página inicial mesmo assim?':'Você tem posts gerados que serão perdidos ao sair (o modo teste não salva).\n\nSair mesmo assim?';
+    if(!confirm(msg))return;
+  }
+  location.href='/';
+}
+window.addEventListener('beforeunload',e=>{if(hasUnsaved()){e.preventDefault();e.returnValue='';}});
 document.getElementById('dlAll').onclick=downloadAll;
 document.getElementById('back').onclick=()=>{closePreview();closeEditor();};
 document.getElementById('previewOverlay').onclick=e=>{if(e.target.id==='previewOverlay'||e.target.id==='previewHint'){closePreview();closeEditor();}};
@@ -740,7 +752,7 @@ function generateImageFor(p,opts){
       if(r.status===402){p.loading=false;renderGrid();quotaEnded();opts.cb&&opts.cb(false);return null;}
       if(!r.ok)throw new Error('http '+r.status);return r.json();
     })
-    .then(d=>{if(!d)return;if(!d.dataUrl)throw new Error('no image');if(d.remaining!=null)setRemaining(d.remaining);const img=new Image();img.onload=()=>{p.img=img;p.loading=false;p.layout='foto';renderGrid();opts.cb&&opts.cb(true);};img.onerror=()=>giveup();img.src=d.dataUrl;})
+    .then(d=>{if(!d)return;if(!d.dataUrl)throw new Error('no image');if(d.remaining!=null)setRemaining(d.remaining);const img=new Image();img.onload=()=>{p.img=img;p.loading=false;p.layout='foto';state.dirty=true;renderGrid();opts.cb&&opts.cb(true);};img.onerror=()=>giveup();img.src=d.dataUrl;})
     .catch(()=>giveup());
 }
 function fontStr(post,base){
@@ -940,6 +952,7 @@ function applyState(d){
   const posts=(d.posts||[]).map(p=>{const q={...p};const src=q.img;q.img=null;q._src=src;return q;});
   state.posts=posts;state.sel=null;renderGrid();
   posts.forEach(p=>{if(p._src){const im=new Image();im.onload=()=>{p.img=im;delete p._src;renderGrid();};im.src=p._src;}});
+  state.dirty=false;
 }
 async function saveProject(){
   if(!sb||!state.user){openAuth('criar');return;}
@@ -947,7 +960,7 @@ async function saveProject(){
   const row={user_id:state.user.id,name,data:serializeState(),updated_at:new Date().toISOString()};if(state.currentProjectId)row.id=state.currentProjectId;
   const {data,error}=await sb.from('projects').upsert(row).select().single();
   if(error){alert('Erro ao salvar: '+error.message);return;}
-  state.currentProjectId=data.id;state.currentProjectName=data.name;toast('Projeto salvo ✓');
+  state.currentProjectId=data.id;state.currentProjectName=data.name;state.dirty=false;toast('Projeto salvo ✓');
 }
 async function openProjects(){
   if(!sb||!state.user){openAuth('entrar');return;}
