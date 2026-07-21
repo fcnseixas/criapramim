@@ -386,6 +386,30 @@
   </div>
 </div>
 
+<div class="ov" id="trialOverlay">
+  <div class="mdl">
+    <span class="mdlx" id="trialClose">×</span>
+    <div style="font-size:30px;text-align:center;margin-bottom:6px">✦</div>
+    <div style="font-weight:700;font-size:17px;text-align:center;margin-bottom:6px">Teste grátis</div>
+    <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px">Deixe seu e-mail pra desbloquear <b>3 gerações</b> de teste. Sem senha, sem cartão.</div>
+    <input type="email" id="trialEmail" placeholder="voce@email.com" style="width:100%;margin-bottom:12px;border:1px solid var(--line);border-radius:11px;padding:12px;font-family:inherit;font-size:14px">
+    <button class="btn-accent-sm" id="trialBtn" style="width:100%;padding:12px">Começar o teste</button>
+    <div id="trialErr" style="color:#c33;font-size:12px;margin-top:8px;min-height:16px;text-align:center"></div>
+  </div>
+</div>
+
+<div class="ov" id="uiOverlay">
+  <div class="mdl" style="max-width:400px">
+    <div id="uiTitle" style="font-weight:700;font-size:16px;margin-bottom:8px"></div>
+    <div id="uiMsg" style="font-size:13.5px;color:var(--muted);line-height:1.5;white-space:pre-wrap;margin-bottom:14px"></div>
+    <input id="uiInput" type="text" style="display:none;width:100%;margin-bottom:14px;border:1px solid var(--line);border-radius:11px;padding:11px;font-family:inherit;font-size:14px">
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="ghost" id="uiCancel">Cancelar</button>
+      <button class="primary" id="uiOk" style="width:auto;padding:9px 18px">OK</button>
+    </div>
+  </div>
+</div>
+
 <footer>criapramim — protótipo de conceito · gera, edita e baixa · você publica onde quiser</footer>
 
 <script>
@@ -422,7 +446,9 @@ function genCopyFallback(theme){
 // Real LLM copy for the whole batch via our backend (/api/generate-text -> OpenAI)
 async function fetchCopyAPI(src,qty){
   const themes=[];for(let i=0;i<qty;i++)themes.push(src[i%src.length]);
-  const res=await fetch('/api/generate-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:(document.getElementById('name').value||'a marca').trim(),tone:tone(),themes,qty})});
+  const res=await fetch('/api/generate-text',{method:'POST',headers:authHeaders(),body:JSON.stringify(withTrial({name:(document.getElementById('name').value||'a marca').trim(),tone:tone(),themes,qty}))});
+  if(res.status===401){openTrial();throw new Error('trial');}
+  if(res.status===402){trialOver();throw new Error('trial_over');}
   if(!res.ok)throw new Error('http '+res.status);
   const data=await res.json();
   return data.posts||[];
@@ -532,7 +558,9 @@ function render(post,canvas){
 // ---------- build posts ----------
 async function build(){ return state.mode==='carousel' ? buildCarousel() : buildIndividual(); }
 async function fetchCarousel(title,context,n){
-  const res=await fetch('/api/generate-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'carousel',name:(document.getElementById('name').value||'a marca').trim(),tone:tone(),title,context,slides:n})});
+  const res=await fetch('/api/generate-text',{method:'POST',headers:authHeaders(),body:JSON.stringify(withTrial({mode:'carousel',name:(document.getElementById('name').value||'a marca').trim(),tone:tone(),title,context,slides:n}))});
+  if(res.status===401){openTrial();throw new Error('trial');}
+  if(res.status===402){trialOver();throw new Error('trial_over');}
   if(!res.ok)throw new Error('http '+res.status);
   return await res.json();
 }
@@ -686,7 +714,7 @@ function updatePreview(){const o=document.getElementById('previewOverlay');if(!o
 function closePreview(){document.getElementById('previewOverlay').classList.remove('on');}
 
 // ---------- download ----------
-function download(p){const cv=document.createElement('canvas');render(p,cv);let url;try{url=cv.toDataURL('image/png')}catch(e){alert('O navegador bloqueou o download desta imagem de IA por segurança (CORS). Gere novamente ou use uma foto própria.');return}const a=document.createElement('a');a.download=`criapramim_${p.slideTotal?('slide_'+p.slideNo):(p.layout+'_'+(p.id+1))}.png`;a.href=url;a.click()}
+function download(p){const cv=document.createElement('canvas');render(p,cv);let url;try{url=cv.toDataURL('image/png')}catch(e){uiAlert('O navegador bloqueou o download desta imagem de IA por segurança (CORS). Gere novamente ou use uma foto própria.');return}const a=document.createElement('a');a.download=`criapramim_${p.slideTotal?('slide_'+p.slideNo):(p.layout+'_'+(p.id+1))}.png`;a.href=url;a.click()}
 function downloadAll(){state.posts.forEach((p,i)=>setTimeout(()=>download(p),i*250))}
 
 // ---------- palette UI ----------
@@ -708,17 +736,18 @@ const tonesEl=document.getElementById('tones');
 TONES.forEach(t=>{const c=document.createElement('div');c.className='chip'+(state.tones.has(t)?' on':'');c.textContent=t;c.onclick=()=>{state.tones.clear();state.tones.add(t);[...tonesEl.children].forEach(ch=>ch.classList.toggle('on',ch.textContent===t))};tonesEl.appendChild(c)});
 
 document.getElementById('qty').oninput=e=>document.getElementById('qtyVal').textContent=e.target.value;
-document.getElementById('gen').onclick=build;
+document.getElementById('gen').onclick=onGen;
 document.querySelectorAll('#setup .acc-h').forEach(h=>h.onclick=()=>{
   const acc=h.parentElement,wasOpen=acc.classList.contains('open');
   document.querySelectorAll('#setup .acc').forEach(a=>a.classList.remove('open'));
   if(!wasOpen)acc.classList.add('open');
 });
 function hasUnsaved(){return state.posts.length>0&&state.dirty;}
-function leaveApp(){
+async function leaveApp(){
   if(hasUnsaved()){
-    const msg=(sb&&state.user)?'Você tem trabalho não salvo. Salve pelo botão “Salvar” antes de sair, ou continue e perca as alterações.\n\nSair para a página inicial mesmo assim?':'Você tem posts gerados que serão perdidos ao sair (o modo teste não salva).\n\nSair mesmo assim?';
-    if(!confirm(msg))return;
+    const msg=(sb&&state.user)?'Você tem trabalho não salvo. Salve pelo botão “Salvar” antes de sair, ou continue e perca as alterações.':'Você tem posts gerados que serão perdidos ao sair (o modo teste não salva).';
+    const ok=await uiConfirm(msg,{title:'Sair para o início?',okText:'Sair mesmo assim',danger:true});
+    if(!ok)return;
   }
   location.href='/';
 }
@@ -735,7 +764,9 @@ document.getElementById('capBarCopy').onclick=()=>{navigator.clipboard.writeText
 document.getElementById('capBarText').oninput=e=>{state.caption=e.target.value;if(document.getElementById('editor').style.display!=='none')document.getElementById('edCap').value=e.target.value;};
 document.getElementById('showCounter').onchange=e=>{state.showCounter=e.target.checked;renderGrid();};
 async function fetchCaption(title,context,points){
-  const res=await fetch('/api/generate-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'caption',name:(document.getElementById('name').value||'a marca').trim(),tone:tone(),title,context,points})});
+  const res=await fetch('/api/generate-text',{method:'POST',headers:authHeaders(),body:JSON.stringify(withTrial({mode:'caption',name:(document.getElementById('name').value||'a marca').trim(),tone:tone(),title,context,points}))});
+  if(res.status===401){openTrial();throw new Error('trial');}
+  if(res.status===402){trialOver();throw new Error('trial_over');}
   if(!res.ok)throw new Error('http '+res.status);const d=await res.json();return String(d.legenda||'').trim();
 }
 async function regenCaption(btn){
@@ -967,7 +998,7 @@ function initSupabase(){
   updateAuthUI();
 }
 function onSession(session){state.user=session?session.user:null;state.token=session?session.access_token:null;updateAuthUI();if(state.user)refreshQuota();}
-function openAuth(tab){if(!sb){alert('Login ainda não configurado (falta o Supabase).');return;}document.getElementById('authOverlay').classList.add('on');authTab(tab||'entrar');document.getElementById('authErr').textContent='';}
+function openAuth(tab){if(!sb){uiAlert('Login ainda não configurado (falta o Supabase).');return;}document.getElementById('authOverlay').classList.add('on');authTab(tab||'entrar');document.getElementById('authErr').textContent='';}
 function closeAuth(){document.getElementById('authOverlay').classList.remove('on');}
 function authTab(t){const c=t==='criar';document.getElementById('authTabCriar').classList.toggle('on',c);document.getElementById('authTabEntrar').classList.toggle('on',!c);const b=document.getElementById('authSubmit');b.textContent=c?'Criar conta':'Entrar';b.dataset.mode=t;}
 async function authSubmit(){
@@ -1021,10 +1052,10 @@ function applyState(d){
 }
 async function saveProject(){
   if(!sb||!state.user){openAuth('criar');return;}
-  const name=prompt('Nome do projeto:',state.currentProjectName||('Projeto '+new Date().toLocaleDateString('pt-BR')));if(!name)return;
+  const name=await uiPrompt('Nome do projeto:',state.currentProjectName||('Projeto '+new Date().toLocaleDateString('pt-BR')),{title:'Salvar projeto',okText:'Salvar'});if(!name)return;
   const row={user_id:state.user.id,name,data:serializeState(),updated_at:new Date().toISOString()};if(state.currentProjectId)row.id=state.currentProjectId;
   const {data,error}=await sb.from('projects').upsert(row).select().single();
-  if(error){alert('Erro ao salvar: '+error.message);return;}
+  if(error){uiAlert('Erro ao salvar: '+error.message);return;}
   state.currentProjectId=data.id;state.currentProjectName=data.name;state.dirty=false;toast('Projeto salvo ✓');
 }
 async function openProjects(){
@@ -1042,8 +1073,8 @@ async function openProjects(){
     const b2=document.createElement('button');b2.className='ghost';b2.textContent='Apagar';b2.onclick=()=>deleteProject(pr.id);
     acts.appendChild(b1);acts.appendChild(b2);row.appendChild(info);row.appendChild(acts);list.appendChild(row);});
 }
-async function loadProject(id){const {data,error}=await sb.from('projects').select('*').eq('id',id).single();if(error){alert(error.message);return;}applyState(data.data);state.currentProjectId=data.id;state.currentProjectName=data.name;document.getElementById('projOverlay').classList.remove('on');closeEditor();}
-async function deleteProject(id){if(!confirm('Apagar este projeto?'))return;const {error}=await sb.from('projects').delete().eq('id',id);if(error){alert(error.message);return;}openProjects();}
+async function loadProject(id){const {data,error}=await sb.from('projects').select('*').eq('id',id).single();if(error){uiAlert(error.message);return;}applyState(data.data);state.currentProjectId=data.id;state.currentProjectName=data.name;document.getElementById('projOverlay').classList.remove('on');closeEditor();}
+async function deleteProject(id){if(!(await uiConfirm('Apagar este projeto? Isso não pode ser desfeito.',{title:'Apagar projeto',okText:'Apagar',danger:true})))return;const {error}=await sb.from('projects').delete().eq('id',id);if(error){uiAlert(error.message);return;}openProjects();}
 document.getElementById('authTabEntrar').onclick=()=>authTab('entrar');
 document.getElementById('authTabCriar').onclick=()=>authTab('criar');
 document.getElementById('authSubmit').onclick=authSubmit;
@@ -1059,7 +1090,7 @@ const PLANS=[
 function renderPlans(){const el=document.getElementById('planList');el.innerHTML='';PLANS.forEach(p=>{const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:12px;padding:12px 14px';row.innerHTML='<div><div style="font-weight:700;font-size:14px">'+p.name+' · '+p.price+'</div><div style="font-size:12px;color:var(--muted)">'+p.desc+'</div></div>';const b=document.createElement('button');b.className='btn-accent-sm';const cur=state.plan===p.key;b.textContent=cur?'Plano atual':'Assinar';b.disabled=cur;b.onclick=()=>checkout(p.key);row.appendChild(b);el.appendChild(row);});}
 function openPlans(){if(!sb||!state.user){openAuth('entrar');return;}renderPlans();document.getElementById('planOverlay').classList.add('on');}
 async function checkout(plan){
-  try{const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+state.token},body:JSON.stringify({plan})});const d=await r.json();if(d.url){location.href=d.url;}else{alert('Não foi possível iniciar o pagamento: '+(d.message||d.error||'erro'));}}catch(e){alert('Erro: '+e.message);}
+  try{const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+state.token},body:JSON.stringify({plan})});const d=await r.json();if(d.url){location.href=d.url;}else{uiAlert('Não foi possível iniciar o pagamento: '+(d.message||d.error||'erro'));}}catch(e){uiAlert('Erro: '+e.message);}
 }
 document.getElementById('planClose').onclick=()=>document.getElementById('planOverlay').classList.remove('on');
 document.getElementById('planOverlay').onclick=e=>{if(e.target.id==='planOverlay')document.getElementById('planOverlay').classList.remove('on');};
@@ -1068,6 +1099,36 @@ document.getElementById('lowClose').onclick=()=>document.getElementById('lowOver
 document.getElementById('lowOverlay').onclick=e=>{if(e.target.id==='lowOverlay')document.getElementById('lowOverlay').classList.remove('on');};
 document.getElementById('lowBuy').onclick=()=>checkout('pack');
 document.getElementById('lowPlans').onclick=()=>{document.getElementById('lowOverlay').classList.remove('on');openPlans();};
+// ---- modais próprios (substituem alert/confirm/prompt) ----
+let _uiResolve=null;
+function uiOpen(o){return new Promise(res=>{_uiResolve=res;const t=document.getElementById('uiTitle');t.textContent=o.title||'';t.style.display=o.title?'block':'none';document.getElementById('uiMsg').textContent=o.message||'';const inp=document.getElementById('uiInput');if(o.input){inp.style.display='block';inp.value=o.defaultValue||'';setTimeout(()=>inp.focus(),40);}else inp.style.display='none';const ok=document.getElementById('uiOk');ok.textContent=o.okText||'OK';ok.style.background=o.danger?'#c0392b':'';const cancel=document.getElementById('uiCancel');cancel.style.display=o.noCancel?'none':'inline-block';cancel.textContent=o.cancelText||'Cancelar';document.getElementById('uiOverlay').classList.add('on');});}
+function uiDone(val){document.getElementById('uiOverlay').classList.remove('on');const r=_uiResolve;_uiResolve=null;if(r)r(val);}
+function uiConfirm(message,opts){opts=opts||{};return uiOpen({title:opts.title||'Confirmar',message,okText:opts.okText||'Confirmar',cancelText:opts.cancelText,danger:opts.danger});}
+function uiAlert(message,opts){opts=opts||{};return uiOpen({title:opts.title||'',message,okText:opts.okText||'OK',noCancel:true});}
+function uiPrompt(message,defaultValue,opts){opts=opts||{};return uiOpen({title:opts.title||'',message,input:true,defaultValue,okText:opts.okText||'OK'});}
+document.getElementById('uiOk').onclick=()=>{const inp=document.getElementById('uiInput');uiDone(inp.style.display!=='none'?inp.value:true);};
+document.getElementById('uiCancel').onclick=()=>{const inp=document.getElementById('uiInput');uiDone(inp.style.display!=='none'?null:false);};
+document.getElementById('uiOverlay').onclick=e=>{if(e.target.id==='uiOverlay'){const inp=document.getElementById('uiInput');uiDone(inp.style.display!=='none'?null:false);}};
+document.getElementById('uiInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('uiOk').click();});
+// ---- teste grátis (captura de e-mail) ----
+try{state.trialId=localStorage.getItem('cpm_trial')||null;}catch(e){}
+function openTrial(){document.getElementById('trialErr').textContent='';document.getElementById('trialOverlay').classList.add('on');setTimeout(()=>document.getElementById('trialEmail').focus(),40);}
+async function startTrial(){
+  const email=document.getElementById('trialEmail').value.trim();const err=document.getElementById('trialErr');
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){err.textContent='Digite um e-mail válido.';return;}
+  const b=document.getElementById('trialBtn');b.disabled=true;const prev=b.textContent;b.textContent='…';
+  try{const r=await fetch('/api/trial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});const d=await r.json();if(!r.ok||!d.trial_id)throw new Error(d.message||d.error||'erro');state.trialId=d.trial_id;try{localStorage.setItem('cpm_trial',d.trial_id);localStorage.setItem('cpm_trial_email',email);}catch(e){}document.getElementById('trialOverlay').classList.remove('on');build();}
+  catch(e){err.textContent=e.message;}
+  b.disabled=false;b.textContent=prev;
+}
+document.getElementById('trialBtn').onclick=startTrial;
+document.getElementById('trialClose').onclick=()=>document.getElementById('trialOverlay').classList.remove('on');
+document.getElementById('trialOverlay').onclick=e=>{if(e.target.id==='trialOverlay')document.getElementById('trialOverlay').classList.remove('on');};
+document.getElementById('trialEmail').addEventListener('keydown',e=>{if(e.key==='Enter')startTrial();});
+function authHeaders(){const h={'Content-Type':'application/json'};if(state.token)h.Authorization='Bearer '+state.token;return h;}
+function withTrial(body){if(!state.user&&state.trialId)body.trial_id=state.trialId;return body;}
+function trialOver(){uiAlert('Seu teste grátis (3 gerações) acabou. Fale com a gente pra liberar seu acesso completo.',{title:'Teste esgotado'});}
+function onGen(){if(isTrial()&&!state.trialId){openTrial();return;}build();}
 if(location.search.indexOf('billing=ok')>=0){history.replaceState({},'','/app.html');setTimeout(()=>{if(state.user)refreshQuota();toast('Pagamento recebido! Seu plano ativa em instantes.');},600);}
 initSupabase();
 

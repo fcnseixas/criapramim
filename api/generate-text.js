@@ -1,5 +1,28 @@
 // Vercel Serverless Function — gera os textos (posts individuais ou carrossel) com a OpenAI.
 // A chave fica em process.env.OPENAI_API_KEY (nunca exposta no navegador).
+// Acesso: logado (token Supabase) OU teste grátis (trial_id, limitado a 3 gerações).
+const clean = v => String(v || '').replace(/[^\x21-\x7E]/g, '');
+const SUPA_URL = clean(process.env.SUPABASE_URL);
+const SERVICE = clean(process.env.SUPABASE_SERVICE_ROLE);
+const ANON = clean(process.env.SUPABASE_ANON_KEY);
+const GATE_ON = !!(SUPA_URL && SERVICE);
+const TRIAL_LIMIT = 3;
+
+async function sbUser(token) {
+  if (!token) return null;
+  const r = await fetch(`${SUPA_URL}/auth/v1/user`, { headers: { apikey: ANON || SERVICE, Authorization: `Bearer ${token}` } });
+  return r.ok ? r.json() : null;
+}
+async function trialConsume(id) {
+  const H = { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` };
+  const r = await fetch(`${SUPA_URL}/rest/v1/trials?id=eq.${id}&select=used`, { headers: H });
+  const a = await r.json(); const row = Array.isArray(a) && a[0];
+  if (!row) return false;
+  if ((row.used || 0) >= TRIAL_LIMIT) return false;
+  await fetch(`${SUPA_URL}/rest/v1/trials?id=eq.${id}`, { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ used: (row.used || 0) + 1 }) });
+  return true;
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method not allowed' });
   const key = process.env.OPENAI_API_KEY;
@@ -7,6 +30,17 @@ module.exports = async (req, res) => {
 
   try {
     const body = req.body || {};
+
+    // controle de acesso (logado ou teste)
+    if (GATE_ON) {
+      const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+      const user = token ? await sbUser(token) : null;
+      if (!user || !user.id) {
+        if (!body.trial_id) return res.status(401).json({ error: 'trial', message: 'Cadastre seu e-mail pra testar grátis.' });
+        if (!(await trialConsume(body.trial_id))) return res.status(402).json({ error: 'trial_over', message: 'Seu teste grátis acabou.' });
+      }
+    }
+
     const { name = 'a marca', tone = 'minimalista', mode = 'individual' } = body;
     const system = 'Você é um estrategista de conteúdo para Instagram no Brasil. Escreve títulos curtos e fortes e legendas envolventes, sempre em português do Brasil, com naturalidade e sem clichês de IA.';
 
