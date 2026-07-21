@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<link rel="icon" href="/logo.svg">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CriaPraMim — um mês de posts, criados pra você</title>
@@ -166,7 +168,7 @@
       <a href="#depoimentos">Depoimentos</a>
     </div>
     <div class="navbtns">
-      <a class="btn btn-ghost" href="app.html">Entrar</a>
+      <button class="btn btn-ghost" onclick="openModal('entrar')">Entrar</button>
       <a class="btn btn-accent" href="app.html">Começar grátis</a>
     </div>
   </div>
@@ -298,29 +300,40 @@
       <div class="tab" id="tabEntrar" onclick="switchTab('entrar')">Entrar</div>
       <div class="tab" id="tabCriar" onclick="switchTab('criar')">Criar conta</div>
     </div>
-    <div class="field" id="fName" style="display:none"><label>Seu nome</label><input type="text" placeholder="Como podemos te chamar?"></div>
-    <div class="field"><label>E-mail</label><input type="email" placeholder="voce@email.com"></div>
-    <div class="field"><label>Senha</label><input type="password" placeholder="••••••••"></div>
-    <button class="btn btn-dark" id="submitBtn" onclick="fakeAuth()">Entrar</button>
-    <div class="or">ou</div>
-    <button class="btn btn-google" onclick="fakeAuth()">
-      <svg width="17" height="17" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2-1.9 3.3-4.7 3.3-7.9z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.5-2.7c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.6H2v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.7 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2a11 11 0 0 0 0 9.8l3.7-2.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.2 1.7l3.1-3.1A11 11 0 0 0 2 7.1l3.7 2.8C6.6 7.3 9.1 5.4 12 5.4z"/></svg>
-      Continuar com Google
-    </button>
-    <div class="note" id="authNote">Protótipo — o cadastro/login ainda não está conectado a um backend. Na versão real, aqui entram autenticação e cobrança.</div>
+    <div class="field" id="fName" style="display:none"><label>Seu nome</label><input type="text" id="mName" placeholder="Como podemos te chamar?"></div>
+    <div class="field"><label>E-mail</label><input type="email" id="mEmail" placeholder="voce@email.com"></div>
+    <div class="field"><label>Senha</label><input type="password" id="mPw" placeholder="••••••••"></div>
+    <button class="btn btn-dark" id="submitBtn" onclick="doAuth()">Entrar</button>
+    <div class="note" id="authNote" style="display:none"></div>
     <div class="fine">Ao continuar, você concorda com os Termos de Uso e a Política de Privacidade.</div>
   </div>
 </div>
 
 <!-- plain-JS interactions (always available) -->
 <script>
+  // COLE aqui os MESMOS valores públicos do app.html:
+  const SUPA_URL='';
+  const SUPA_KEY='';
+  let sb=null;
+  if(SUPA_URL&&SUPA_KEY&&window.supabase){sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);}
   const ov=document.getElementById('overlay');
+  let authMode='entrar';
   function openModal(tab){ov.classList.add('on');switchTab(tab);document.body.style.overflow='hidden'}
   function closeModal(){ov.classList.remove('on');document.body.style.overflow='';document.getElementById('authNote').style.display='none'}
-  function switchTab(t){const c=t==='criar';document.getElementById('tabCriar').classList.toggle('on',c);document.getElementById('tabEntrar').classList.toggle('on',!c);document.getElementById('fName').style.display=c?'block':'none';document.getElementById('submitBtn').textContent=c?'Criar minha conta':'Entrar'}
+  function switchTab(t){authMode=t;const c=t==='criar';document.getElementById('tabCriar').classList.toggle('on',c);document.getElementById('tabEntrar').classList.toggle('on',!c);document.getElementById('fName').style.display=c?'block':'none';document.getElementById('submitBtn').textContent=c?'Criar minha conta':'Entrar';document.getElementById('authNote').style.display='none'}
   ov.onclick=e=>{if(e.target===ov)closeModal()};
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
-  function fakeAuth(){document.getElementById('authNote').style.display='block'}
+  async function doAuth(){
+    const note=document.getElementById('authNote');
+    if(!sb){note.style.display='block';note.style.color='#b23c25';note.textContent='Login ainda não configurado (falta preencher SUPA_URL/SUPA_KEY no index.html).';return;}
+    const email=document.getElementById('mEmail').value.trim(), pw=document.getElementById('mPw').value;
+    const b=document.getElementById('submitBtn');b.disabled=true;const prev=b.textContent;b.textContent='…';
+    try{
+      if(authMode==='criar'){const {error}=await sb.auth.signUp({email,password:pw});if(error)throw error;note.style.display='block';note.style.color='#2a7';note.textContent='Conta criada! Se pedir confirmação, confira o e-mail e depois entre.';}
+      else{const {error}=await sb.auth.signInWithPassword({email,password:pw});if(error)throw error;location.href='app.html';return;}
+    }catch(e){note.style.display='block';note.style.color='#c33';note.textContent=(e&&e.message)||'Erro';}
+    b.disabled=false;b.textContent=prev;
+  }
   // spotlight follow for step cards
   document.querySelectorAll('.step').forEach(s=>s.addEventListener('pointermove',e=>{const r=s.getBoundingClientRect();s.style.setProperty('--mx',(e.clientX-r.left)+'px');s.style.setProperty('--my',(e.clientY-r.top)+'px')}));
 

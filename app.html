@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Poppins:wght@600;700;800&family=Playfair+Display:wght@600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="icon" href="/logo.svg">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
@@ -283,10 +284,6 @@
         <span id="genStatus" style="font-size:13px;color:var(--accent);font-weight:600"></span>
         <button class="ghost" id="dlAll" style="display:none">Baixar todos</button>
       </div>
-    </div>
-    <div id="trialBanner" style="display:none;align-items:center;justify-content:space-between;gap:12px;background:#FBE7E0;border:1px solid #f0c9bd;color:#9a3d28;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:13px">
-      <span>Modo teste — até 3 posts e sem imagens por IA. Crie sua conta pra liberar tudo e salvar seus projetos.</span>
-      <button class="btn-accent-sm" id="trialSignup" style="white-space:nowrap">Criar conta grátis</button>
     </div>
     <div id="captionBar" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px;flex-wrap:wrap">
@@ -954,7 +951,6 @@ document.getElementById('authClose').onclick=closeAuth;
 document.getElementById('authOverlay').onclick=e=>{if(e.target.id==='authOverlay')closeAuth();};
 document.getElementById('projClose').onclick=()=>document.getElementById('projOverlay').classList.remove('on');
 document.getElementById('projOverlay').onclick=e=>{if(e.target.id==='projOverlay')document.getElementById('projOverlay').classList.remove('on');};
-document.getElementById('trialSignup').onclick=()=>openAuth('criar');
 initSupabase();
 
 showPalette();
