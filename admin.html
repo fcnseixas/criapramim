@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CriaPraMim — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--ink:#171512;--paper:#FBF9F4;--line:#ece8e0;--accent:#E8654A;--muted:#8a857c}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:28px 24px}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.03em;font-size:19px}
+  .logo svg{width:28px;height:28px}
+  h1{font-size:20px;font-weight:700;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+  input,select{border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:14px;background:#fff;color:var(--ink)}
+  input:focus,select:focus{outline:none;border-color:var(--ink)}
+  label{font-size:12px;color:var(--muted);font-weight:500;display:block;margin-bottom:4px}
+  button{font-family:inherit;font-size:13px;font-weight:600;border-radius:9px;padding:9px 14px;cursor:pointer;border:1px solid var(--line);background:#fff;transition:.12s}
+  button:hover{border-color:#c9c9c9}
+  .primary{background:var(--ink);color:#fff;border:0}
+  .accent{background:var(--accent);color:#fff;border:0}
+  .danger{color:#c0392b}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:22px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:10px 8px;border-bottom:1px solid var(--line)}
+  td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  td input{width:80px;padding:6px 8px}
+  td select{padding:6px 8px}
+  .row-actions{display:flex;gap:6px;flex-wrap:wrap}
+  .pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#f0ede6;color:#666}
+  .pill.admin{background:#FBE7E0;color:#b23c25}
+  .center{max-width:380px;margin:8vh auto;text-align:center}
+  .center .card{text-align:left}
+  .err{color:#c33;font-size:12px;margin-top:8px;min-height:16px}
+  .muted{color:var(--muted);font-size:13px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 90px 110px auto;gap:10px;align-items:end}
+  @media(max-width:720px){.grid3{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="/app.html" class="logo">
+      <svg viewBox="0 0 48 48" fill="none"><rect x="4" y="4" width="40" height="40" rx="13" fill="#171512"/><g transform="translate(9.5,13) scale(0.86)"><path d="M12 0C12 6.6 6.6 12 0 12 6.6 12 12 17.4 12 24 12 17.4 17.4 12 24 12 17.4 12 12 6.6 12 0Z" fill="#F7F4EF"/></g><g transform="translate(28.5,9.5) scale(0.4)"><path d="M12 0C12 6.6 6.6 12 0 12 6.6 12 12 17.4 12 24 12 17.4 17.4 12 24 12 17.4 12 12 6.6 12 0Z" fill="#E8654A"/></g></svg>
+      criapramim <span style="color:var(--muted);font-weight:600">· admin</span>
+    </a>
+    <div id="whoami" class="muted"></div>
+  </header>
+
+  <!-- LOGIN -->
+  <div id="loginView" class="center" style="display:none">
+    <div class="card">
+      <h1>Entrar no admin</h1>
+      <div class="sub">Acesso restrito a administradores.</div>
+      <label>E-mail</label><input id="lEmail" type="email" style="width:100%;margin-bottom:10px" placeholder="voce@email.com">
+      <label>Senha</label><input id="lPw" type="password" style="width:100%;margin-bottom:14px" placeholder="••••••••">
+      <button class="primary" id="lBtn" style="width:100%">Entrar</button>
+      <div class="err" id="lErr"></div>
+    </div>
+  </div>
+
+  <!-- DENIED -->
+  <div id="deniedView" class="center" style="display:none">
+    <div class="card">
+      <h1>Acesso negado</h1>
+      <div class="sub">Sua conta não é administradora.</div>
+      <button id="dLogout">Sair</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashView" style="display:none">
+    <h1>Usuários</h1>
+    <div class="sub">Crie contas, ajuste a cota mensal (imagens/mês) e o papel de cada um.</div>
+
+    <div class="card">
+      <div style="font-weight:600;font-size:14px;margin-bottom:12px">Criar usuário</div>
+      <div class="grid3">
+        <div><label>E-mail</label><input id="cEmail" type="email" placeholder="cliente@email.com" style="width:100%"></div>
+        <div><label>Senha</label><input id="cPw" type="text" placeholder="senha inicial" style="width:100%"></div>
+        <div><label>Cota</label><input id="cQuota" type="number" value="40" style="width:100%"></div>
+        <div><label>Papel</label><select id="cRole" style="width:100%"><option value="user">user</option><option value="admin">admin</option></select></div>
+        <div><button class="accent" id="cBtn">Criar</button></div>
+      </div>
+      <div class="err" id="cErr"></div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <table>
+        <thead><tr><th>E-mail</th><th>Papel</th><th>Plano</th><th>Cota (usado/total)</th><th>Desde</th><th>Ações</th></tr></thead>
+        <tbody id="userRows"><tr><td colspan="6" class="muted" style="padding:18px">carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// COLE aqui os MESMOS valores públicos do app.html:
+const SUPA_URL='';
+const SUPA_KEY='';
+let sb=null, token=null;
+
+function show(id){['loginView','deniedView','dashView'].forEach(v=>document.getElementById(v).style.display=v===id?'block':'none');}
+async function api(action,payload){
+  const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({action,...(payload||{})})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error((d&&(d.error||JSON.stringify(d.detail)))||('http '+r.status));
+  return d;
+}
+async function boot(session){
+  token=session?session.access_token:null;
+  if(!session){show('loginView');return;}
+  document.getElementById('whoami').textContent=session.user.email;
+  // checa papel pelo próprio perfil (RLS permite ler o próprio)
+  const {data,error}=await sb.from('profiles').select('role').eq('id',session.user.id).single();
+  if(error||!data||data.role!=='admin'){show('deniedView');return;}
+  show('dashView');loadUsers();
+}
+async function loadUsers(){
+  const tb=document.getElementById('userRows');tb.innerHTML='<tr><td colspan="6" class="muted" style="padding:18px">carregando…</td></tr>';
+  try{
+    const {users}=await api('list');
+    if(!users||!users.length){tb.innerHTML='<tr><td colspan="6" class="muted" style="padding:18px">Nenhum usuário.</td></tr>';return;}
+    tb.innerHTML='';
+    users.forEach(u=>{
+      const tr=document.createElement('tr');
+      const since=u.created_at?new Date(u.created_at).toLocaleDateString('pt-BR'):'—';
+      tr.innerHTML=
+        '<td>'+(u.email||'—')+'</td>'+
+        '<td><select data-f="role"><option value="user"'+(u.role==='user'?' selected':'')+'>user</option><option value="admin"'+(u.role==='admin'?' selected':'')+'>admin</option></select></td>'+
+        '<td>'+(u.plan||'—')+'</td>'+
+        '<td><span class="muted">'+(u.credits_used||0)+' / </span><input type="number" data-f="credits_total" value="'+(u.credits_total||0)+'"></td>'+
+        '<td class="muted">'+since+'</td>'+
+        '<td class="row-actions"></td>';
+      const acts=tr.querySelector('.row-actions');
+      const bSave=document.createElement('button');bSave.textContent='Salvar';bSave.onclick=()=>saveUser(u.id,tr,bSave);
+      const bReset=document.createElement('button');bReset.textContent='Zerar uso';bReset.onclick=()=>resetUser(u.id);
+      const bDel=document.createElement('button');bDel.textContent='Apagar';bDel.className='danger';bDel.onclick=()=>delUser(u.id,u.email);
+      acts.appendChild(bSave);acts.appendChild(bReset);acts.appendChild(bDel);
+      tb.appendChild(tr);
+    });
+  }catch(e){tb.innerHTML='<tr><td colspan="6" class="danger" style="padding:18px">'+e.message+'</td></tr>';}
+}
+async function saveUser(id,tr,btn){
+  const role=tr.querySelector('[data-f="role"]').value;
+  const credits_total=+tr.querySelector('[data-f="credits_total"]').value;
+  const t=btn.textContent;btn.disabled=true;btn.textContent='…';
+  try{await api('update',{id,role,credits_total});btn.textContent='✓';}catch(e){alert(e.message);btn.textContent=t;}
+  setTimeout(()=>{btn.disabled=false;btn.textContent='Salvar';},900);
+}
+async function resetUser(id){if(!confirm('Zerar o uso deste usuário (recomeça a cota do mês)?'))return;try{await api('resetUsage',{id});loadUsers();}catch(e){alert(e.message);}}
+async function delUser(id,email){if(!confirm('Apagar '+(email||'este usuário')+'? Isso remove a conta e os projetos.'))return;try{await api('delete',{id});loadUsers();}catch(e){alert(e.message);}}
+async function createUser(){
+  const email=document.getElementById('cEmail').value.trim();
+  const password=document.getElementById('cPw').value;
+  const credits_total=+document.getElementById('cQuota').value;
+  const role=document.getElementById('cRole').value;
+  const err=document.getElementById('cErr');err.textContent='';
+  const b=document.getElementById('cBtn');b.disabled=true;const t=b.textContent;b.textContent='…';
+  try{await api('create',{email,password,credits_total,role});document.getElementById('cEmail').value='';document.getElementById('cPw').value='';loadUsers();}
+  catch(e){err.textContent=e.message;}
+  b.disabled=false;b.textContent=t;
+}
+
+// wiring
+document.getElementById('cBtn').onclick=createUser;
+document.getElementById('dLogout').onclick=async()=>{await sb.auth.signOut();show('loginView');};
+document.getElementById('lBtn').onclick=async()=>{
+  const err=document.getElementById('lErr');err.textContent='';
+  const b=document.getElementById('lBtn');b.disabled=true;
+  try{const {error}=await sb.auth.signInWithPassword({email:document.getElementById('lEmail').value.trim(),password:document.getElementById('lPw').value});if(error)throw error;}
+  catch(e){err.textContent=e.message||'Erro';}
+  b.disabled=false;
+};
+
+if(SUPA_URL&&SUPA_KEY&&window.supabase){
+  sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+  sb.auth.getSession().then(({data})=>boot(data.session));
+  sb.auth.onAuthStateChange((_e,session)=>boot(session));
+}else{
+  document.getElementById('whoami').textContent='';
+  document.querySelector('.wrap').insertAdjacentHTML('beforeend','<div class="card danger">Configure SUPA_URL e SUPA_KEY no topo do admin.html (os mesmos valores públicos do app.html).</div>');
+}
+</script>
+</body>
+</html>

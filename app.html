@@ -904,7 +904,8 @@ function updateAuthUI(){
   if(!sb){area.innerHTML='<span class="quota">v0.1</span>';}
   else if(state.user){
     const rem=remaining();const q=(rem!=null)?('<span class="quota">restam '+rem+' de '+state.creditsTotal+' posts</span>'):'';
-    area.innerHTML=q+' <button class="ghost" id="btnProjects">Meus projetos</button> <button class="ghost" id="btnSave">Salvar</button> <button class="ghost" id="btnLogout">Sair</button>';
+    const adminLink=(state.role==='admin')?' <a class="ghost" href="/admin.html" style="display:inline-block;text-decoration:none">Admin</a>':'';
+    area.innerHTML=q+' <button class="ghost" id="btnProjects">Meus projetos</button> <button class="ghost" id="btnSave">Salvar</button>'+adminLink+' <button class="ghost" id="btnLogout">Sair</button>';
     document.getElementById('btnProjects').onclick=openProjects;document.getElementById('btnSave').onclick=saveProject;document.getElementById('btnLogout').onclick=async()=>{await sb.auth.signOut();};
   } else {
     area.innerHTML='<button class="btn-accent-sm" id="btnLogin">Entrar / Criar conta</button>';
