@@ -37,6 +37,17 @@
   main{flex:1;overflow-y:auto;padding:26px 30px}
   h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px;font-weight:600}
   .section{margin-bottom:26px}
+  /* acordeão do painel de setup */
+  .acc{border-bottom:1px solid var(--line)}
+  .acc-h{width:100%;display:flex;align-items:center;justify-content:space-between;background:none;border:0;padding:15px 2px;font-family:inherit;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;cursor:pointer}
+  .acc-h:hover{color:var(--ink)}
+  .acc-h .chev{transition:transform .22s;font-size:16px}
+  .acc.open>.acc-h{color:var(--ink)}
+  .acc.open>.acc-h .chev{transform:rotate(90deg)}
+  .acc-b{display:grid;grid-template-rows:0fr;transition:grid-template-rows .25s ease}
+  .acc.open>.acc-b{grid-template-rows:1fr}
+  .acc-in{overflow:hidden}
+  .acc.open>.acc-b>.acc-in{padding-bottom:18px}
   label{display:block;font-size:13px;font-weight:500;margin:0 0 6px}
   input[type=text],textarea{
     width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
@@ -134,79 +145,85 @@
   <aside>
     <!-- SETUP PANEL -->
     <div id="setup">
-      <div class="section">
-        <h2>Marca</h2>
-        <div class="row" style="margin-bottom:10px">
-          <div><label>Nome</label><input type="text" id="name" placeholder="Ex: Estúdio Aurora"></div>
-          <div><label>@ do perfil</label><input type="text" id="handle" placeholder="@estudioaurora"></div>
-        </div>
-        <label>Leitura do perfil</label>
-        <div class="drop" id="drop">
-          Solte um print da sua grade do Instagram<br>ou uma foto de referência
-        </div>
-        <input type="file" id="file" accept="image/*" hidden>
-        <div class="palette" id="palette" style="display:none"></div>
-        <div class="hint" id="readOut" style="display:none"></div>
-        <label style="margin-top:14px">Sua foto <span style="font-weight:400;color:var(--muted)">(opcional — pra aparecer nas artes)</span></label>
-        <div class="drop" id="faceDrop" style="padding:12px">Suba uma foto sua de rosto, bem iluminada</div>
-        <input type="file" id="faceFile" accept="image/*" hidden>
-        <div class="mini" id="faceStatus"></div>
+      <div class="acc open">
+        <button class="acc-h" type="button">Marca <span class="chev">›</span></button>
+        <div class="acc-b"><div class="acc-in">
+          <div class="row">
+            <div><label>Nome</label><input type="text" id="name" placeholder="Ex: Estúdio Aurora"></div>
+            <div><label>@ do perfil</label><input type="text" id="handle" placeholder="@estudioaurora"></div>
+          </div>
+        </div></div>
       </div>
 
-      <div class="section">
-        <h2>Estilo / tom de voz</h2>
-        <div class="chips" id="tones"></div>
+      <div class="acc">
+        <button class="acc-h" type="button">Leitura do perfil <span class="chev">›</span></button>
+        <div class="acc-b"><div class="acc-in">
+          <label>Print da sua grade / referência</label>
+          <div class="drop" id="drop">Solte um print da sua grade do Instagram<br>ou uma foto de referência</div>
+          <input type="file" id="file" accept="image/*" hidden>
+          <div class="palette" id="palette" style="display:none"></div>
+          <div class="hint" id="readOut" style="display:none"></div>
+          <label style="margin-top:14px">Sua foto <span style="font-weight:400;color:var(--muted)">(opcional — pra aparecer nas artes)</span></label>
+          <div class="drop" id="faceDrop" style="padding:12px">Suba uma foto sua de rosto, bem iluminada</div>
+          <input type="file" id="faceFile" accept="image/*" hidden>
+          <div class="mini" id="faceStatus"></div>
+        </div></div>
       </div>
 
-      <div class="section">
-        <h2>Modo</h2>
-        <div class="chips" id="modePick">
-          <div class="chip on" data-mode="individual">Posts individuais</div>
-          <div class="chip" data-mode="carousel">Carrossel</div>
-        </div>
+      <div class="acc">
+        <button class="acc-h" type="button">Estilo &amp; modo <span class="chev">›</span></button>
+        <div class="acc-b"><div class="acc-in">
+          <label>Tom de voz</label>
+          <div class="chips" id="tones"></div>
+          <label style="margin-top:16px">Modo</label>
+          <div class="chips" id="modePick">
+            <div class="chip on" data-mode="individual">Posts individuais</div>
+            <div class="chip" data-mode="carousel">Carrossel</div>
+          </div>
+        </div></div>
       </div>
 
-      <div class="section" id="indivFields">
-        <h2>Conteúdo</h2>
-        <label>Temas e ideias (um por linha)</label>
-        <textarea id="themes" rows="4" placeholder="Ex:&#10;dicas de organização&#10;bastidores do ateliê&#10;depoimento de cliente"></textarea>
-        <div class="range" style="margin-top:14px">
-          <label style="margin:0">Quantidade</label>
-          <input type="range" id="qty" min="3" max="12" value="6">
-          <span class="qty" id="qtyVal">6</span>
-        </div>
+      <div class="acc">
+        <button class="acc-h" type="button">Conteúdo <span class="chev">›</span></button>
+        <div class="acc-b"><div class="acc-in">
+          <div id="indivFields">
+            <label>Temas e ideias (um por linha)</label>
+            <textarea id="themes" rows="4" placeholder="Ex:&#10;dicas de organização&#10;bastidores do ateliê&#10;depoimento de cliente"></textarea>
+            <div class="range" style="margin-top:14px">
+              <label style="margin:0">Quantidade</label>
+              <input type="range" id="qty" min="3" max="12" value="6">
+              <span class="qty" id="qtyVal">6</span>
+            </div>
+          </div>
+          <div id="carFields" style="display:none">
+            <label>Título</label>
+            <input type="text" id="carTitle" placeholder="Ex: Como cuidar da pele no inverno">
+            <label style="margin-top:10px">Contexto / história</label>
+            <textarea id="carContext" rows="4" placeholder="Resuma o que o carrossel deve contar: os pontos principais, na ordem que fizer sentido."></textarea>
+            <div class="range" style="margin-top:14px">
+              <label style="margin:0">Nº de slides</label>
+              <input type="range" id="carN" min="2" max="10" value="5">
+              <span class="qty" id="carNVal">5</span>
+            </div>
+            <label style="margin-top:14px">Estilo do carrossel</label>
+            <div class="chips" id="carStyle">
+              <div class="chip on" data-cstyle="all">Imagem em todos</div>
+              <div class="chip" data-cstyle="some">Imagem em alguns</div>
+              <div class="chip" data-cstyle="text">Só texto (design)</div>
+            </div>
+            <div class="hint" style="margin-top:6px">“Só texto” usa fundo de cor e formas geométricas — sem foto.</div>
+          </div>
+          <div id="imgsSection" style="margin-top:16px">
+            <label style="display:flex;align-items:center;gap:9px;font-weight:500;cursor:pointer;margin:0">
+              <input type="checkbox" id="genImgs" checked style="width:16px;height:16px;accent-color:var(--accent)">
+              Gerar imagens por IA
+            </label>
+            <div class="hint" style="margin-top:4px">As imagens são geradas aos poucos — aguarde alguns segundos.</div>
+          </div>
+        </div></div>
       </div>
 
-      <div class="section" id="carFields" style="display:none">
-        <h2>Carrossel</h2>
-        <label>Título</label>
-        <input type="text" id="carTitle" placeholder="Ex: Como cuidar da pele no inverno">
-        <label style="margin-top:10px">Contexto / história</label>
-        <textarea id="carContext" rows="4" placeholder="Resuma o que o carrossel deve contar: os pontos principais, na ordem que fizer sentido."></textarea>
-        <div class="range" style="margin-top:14px">
-          <label style="margin:0">Nº de slides</label>
-          <input type="range" id="carN" min="2" max="10" value="5">
-          <span class="qty" id="carNVal">5</span>
-        </div>
-        <label style="margin-top:14px">Estilo do carrossel</label>
-        <div class="chips" id="carStyle">
-          <div class="chip on" data-cstyle="all">Imagem em todos</div>
-          <div class="chip" data-cstyle="some">Imagem em alguns</div>
-          <div class="chip" data-cstyle="text">Só texto (design)</div>
-        </div>
-        <div class="hint" style="margin-top:6px">“Só texto” usa fundo de cor e formas geométricas — sem foto. Edite fonte e cores em cada slide.</div>
-      </div>
-
-      <div class="section" id="imgsSection">
-        <label style="display:flex;align-items:center;gap:9px;font-weight:500;cursor:pointer">
-          <input type="checkbox" id="genImgs" checked style="width:16px;height:16px;accent-color:var(--accent)">
-          Gerar imagens por IA
-        </label>
-        <div class="hint" style="margin-top:4px">As imagens são geradas aos poucos — aguarde alguns segundos.</div>
-      </div>
-
-      <button class="primary" id="gen">Gerar posts</button>
-      <div class="hint">A leitura do perfil e a redação usam IA na versão final. Neste protótipo, a paleta é extraída de verdade da imagem e as legendas são geradas por modelo de exemplo.</div>
+      <button class="primary" id="gen" style="margin-top:18px">Gerar posts</button>
     </div>
 
     <!-- EDIT PANEL -->
@@ -649,6 +666,11 @@ TONES.forEach(t=>{const c=document.createElement('div');c.className='chip'+(stat
 
 document.getElementById('qty').oninput=e=>document.getElementById('qtyVal').textContent=e.target.value;
 document.getElementById('gen').onclick=build;
+document.querySelectorAll('#setup .acc-h').forEach(h=>h.onclick=()=>{
+  const acc=h.parentElement,wasOpen=acc.classList.contains('open');
+  document.querySelectorAll('#setup .acc').forEach(a=>a.classList.remove('open'));
+  if(!wasOpen)acc.classList.add('open');
+});
 document.getElementById('dlAll').onclick=downloadAll;
 document.getElementById('back').onclick=()=>{closePreview();closeEditor();};
 document.getElementById('previewOverlay').onclick=e=>{if(e.target.id==='previewOverlay'||e.target.id==='previewHint'){closePreview();closeEditor();}};
