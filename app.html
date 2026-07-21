@@ -358,6 +358,17 @@
   </div>
 </div>
 
+<div class="ov" id="lowOverlay">
+  <div class="mdl">
+    <span class="mdlx" id="lowClose">×</span>
+    <div style="font-size:30px;text-align:center;margin-bottom:6px">✦</div>
+    <div style="font-weight:700;font-size:17px;text-align:center;margin-bottom:6px">Seu estoque de imagens está acabando</div>
+    <div id="lowMsg" style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px"></div>
+    <button class="btn-accent-sm" id="lowBuy" style="width:100%;padding:12px">Garantir +10 imagens — R$12,90</button>
+    <button class="ghost" id="lowPlans" style="width:100%;margin-top:8px">Ver planos maiores</button>
+  </div>
+</div>
+
 <footer>criapramim — protótipo de conceito · gera, edita e baixa · você publica onde quiser</footer>
 
 <script>
@@ -941,8 +952,19 @@ async function authSubmit(){
   b.disabled=false;b.textContent=prev;
 }
 function remaining(){return (state.creditsTotal==null)?null:Math.max(0,state.creditsTotal-(state.creditsUsed||0));}
-function setRemaining(rem){if(state.creditsTotal!=null)state.creditsUsed=Math.max(0,state.creditsTotal-rem);updateAuthUI();}
-async function refreshQuota(){if(!sb||!state.user)return;const {data,error}=await sb.from('profiles').select('credits_total,credits_used,role,plan').eq('id',state.user.id).single();if(!error&&data){state.creditsTotal=data.credits_total;state.creditsUsed=data.credits_used;state.role=data.role;state.plan=data.plan;}updateAuthUI();}
+function setRemaining(rem){if(state.creditsTotal!=null)state.creditsUsed=Math.max(0,state.creditsTotal-rem);updateAuthUI();checkLowQuota();}
+function checkLowQuota(){
+  const tot=state.creditsTotal, rem=remaining();
+  if(!tot||rem==null)return;
+  const threshold=Math.max(1,Math.ceil(tot*0.2));
+  if(rem>threshold){state._lowShown=false;return;}
+  if(rem>0&&!state._lowShown){
+    state._lowShown=true;
+    document.getElementById('lowMsg').textContent='Restam '+rem+' de '+tot+' imagens este mês. Garanta mais e não pare de publicar.';
+    document.getElementById('lowOverlay').classList.add('on');
+  }
+}
+async function refreshQuota(){if(!sb||!state.user)return;const {data,error}=await sb.from('profiles').select('credits_total,credits_used,role,plan').eq('id',state.user.id).single();if(!error&&data){state.creditsTotal=data.credits_total;state.creditsUsed=data.credits_used;state.role=data.role;state.plan=data.plan;}updateAuthUI();checkLowQuota();}
 function quotaEnded(){toast('Cota de imagens esgotada — veja os planos ou compre um pacote.');openPlans();}
 function updateAuthUI(){
   const area=document.getElementById('authArea');if(!area)return;
@@ -1013,6 +1035,10 @@ async function checkout(plan){
 document.getElementById('planClose').onclick=()=>document.getElementById('planOverlay').classList.remove('on');
 document.getElementById('planOverlay').onclick=e=>{if(e.target.id==='planOverlay')document.getElementById('planOverlay').classList.remove('on');};
 document.getElementById('buyPack').onclick=()=>checkout('pack');
+document.getElementById('lowClose').onclick=()=>document.getElementById('lowOverlay').classList.remove('on');
+document.getElementById('lowOverlay').onclick=e=>{if(e.target.id==='lowOverlay')document.getElementById('lowOverlay').classList.remove('on');};
+document.getElementById('lowBuy').onclick=()=>checkout('pack');
+document.getElementById('lowPlans').onclick=()=>{document.getElementById('lowOverlay').classList.remove('on');openPlans();};
 if(location.search.indexOf('billing=ok')>=0){history.replaceState({},'','/app.html');setTimeout(()=>{if(state.user)refreshQuota();toast('Pagamento recebido! Seu plano ativa em instantes.');},600);}
 initSupabase();
 
