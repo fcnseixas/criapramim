@@ -109,7 +109,7 @@ function show(id){['loginView','deniedView','dashView'].forEach(v=>document.getE
 async function api(action,payload){
   const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({action,...(payload||{})})});
   const d=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error((d&&(d.error||JSON.stringify(d.detail)))||('http '+r.status));
+  if(!r.ok)throw new Error((d&&(d.message||d.error||JSON.stringify(d.detail)))||('http '+r.status));
   return d;
 }
 async function boot(session){
