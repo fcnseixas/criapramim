@@ -100,6 +100,11 @@
   .mini{font-size:11px;color:var(--muted);margin-top:5px}
   footer{padding:10px 24px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);background:var(--panel);text-align:center}
   .badge{display:inline-block;font-size:10px;background:#f0f0f0;border-radius:5px;padding:2px 6px;color:#666;margin-left:6px;vertical-align:middle}
+  /* preview ampliado */
+  #previewOverlay{position:fixed;display:none;align-items:center;justify-content:center;background:rgba(23,21,18,.5);backdrop-filter:blur(3px);z-index:30}
+  #previewOverlay.on{display:flex}
+  #previewCanvas{width:min(64vh,560px);height:min(64vh,560px);border-radius:16px;box-shadow:0 30px 80px -20px rgba(0,0,0,.55);background:#fff}
+  #previewHint{position:absolute;bottom:18px;left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:12px;font-weight:500;pointer-events:none}
 </style>
 </head>
 <body>
@@ -265,6 +270,8 @@
     <div class="grid" id="grid"></div>
   </main>
 </div>
+
+<div id="previewOverlay"><canvas id="previewCanvas"></canvas><div id="previewHint">clique fora para voltar</div></div>
 
 <footer>criapramim — protótipo de conceito · gera, edita e baixa · você publica onde quiser</footer>
 
@@ -489,9 +496,10 @@ function renderGrid(){
     dl.onclick=e=>{e.stopPropagation();download(p)};
     meta.appendChild(dl);
     card.appendChild(cv);card.appendChild(meta);
-    card.onclick=()=>openEditor(p.id);
+    card.onclick=()=>{openEditor(p.id);openPreview(p.id);};
     grid.appendChild(card);
   });
+  updatePreview();
 }
 
 // ---------- editor ----------
@@ -533,6 +541,11 @@ function swatches(elId,cb,cur){
   state.palette.forEach(c=>{const s=document.createElement('div');s.className='sw'+(c===cur?' sel':'');s.style.background=c;s.onclick=()=>cb(c);el.appendChild(s)});
 }
 function closeEditor(){state.sel=null;document.getElementById('editor').style.display='none';document.getElementById('setup').style.display='block';renderGrid()}
+// ---------- preview ampliado ----------
+function positionPreview(){const m=document.querySelector('main').getBoundingClientRect();const o=document.getElementById('previewOverlay');o.style.left=m.left+'px';o.style.top=m.top+'px';o.style.width=m.width+'px';o.style.height=m.height+'px';}
+function openPreview(id){const p=state.posts.find(x=>x.id===id);if(!p)return;positionPreview();render(p,document.getElementById('previewCanvas'));document.getElementById('previewOverlay').classList.add('on');}
+function updatePreview(){const o=document.getElementById('previewOverlay');if(!o.classList.contains('on'))return;const p=state.posts.find(x=>x.id===state.sel);if(p)render(p,document.getElementById('previewCanvas'));}
+function closePreview(){document.getElementById('previewOverlay').classList.remove('on');}
 
 // ---------- download ----------
 function download(p){const cv=document.createElement('canvas');render(p,cv);let url;try{url=cv.toDataURL('image/png')}catch(e){alert('O navegador bloqueou o download desta imagem de IA por segurança (CORS). Gere novamente ou use uma foto própria.');return}const a=document.createElement('a');a.download=`criapramim_${p.slideTotal?('slide_'+p.slideNo):(p.layout+'_'+(p.id+1))}.png`;a.href=url;a.click()}
@@ -559,7 +572,10 @@ TONES.forEach(t=>{const c=document.createElement('div');c.className='chip'+(stat
 document.getElementById('qty').oninput=e=>document.getElementById('qtyVal').textContent=e.target.value;
 document.getElementById('gen').onclick=build;
 document.getElementById('dlAll').onclick=downloadAll;
-document.getElementById('back').onclick=closeEditor;
+document.getElementById('back').onclick=()=>{closePreview();closeEditor();};
+document.getElementById('previewOverlay').onclick=e=>{if(e.target.id==='previewOverlay'||e.target.id==='previewHint'){closePreview();closeEditor();}};
+window.addEventListener('resize',()=>{if(document.getElementById('previewOverlay').classList.contains('on'))positionPreview();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('previewOverlay').classList.contains('on')){closePreview();closeEditor();}});
 document.getElementById('dlOne').onclick=()=>download(state.posts.find(x=>x.id===state.sel));
 document.getElementById('copyCap').onclick=()=>{const txt=state.mode==='carousel'?state.caption:((state.posts.find(x=>x.id===state.sel)||{}).caption||'');navigator.clipboard.writeText(txt);document.getElementById('copyCap').textContent='Copiado ✓';setTimeout(()=>document.getElementById('copyCap').textContent='Copiar legenda',1200)};
 document.getElementById('carN').oninput=e=>document.getElementById('carNVal').textContent=e.target.value;
